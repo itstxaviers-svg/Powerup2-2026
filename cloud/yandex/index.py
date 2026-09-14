@@ -233,7 +233,7 @@ def _register_student(data):
         UPSERT INTO students (student_code, student_id, display_name, group_id, group_display_name, join_code, avatar_id, pin_hash, created_at, updated_at)
         VALUES ($student_code, $student_id, $name, $group_id, $group_name, $join_code, $avatar_id, $pin_hash, $now, $now);
         UPSERT INTO group_members (group_id, student_id, student_code) VALUES ($group_id, $student_id, $student_code);
-    """, student_code=student_code, student_id=student_id, name=name, group_id=group_id, group_name=group_name, join_code=join_code, avatar_id=avatar_id, pin_hash=_hash_secret(pin), now=now)
+    """, student_code=student_code, student_id=student_id, name=name, group_id=group_id, group_name=group_name, join_code=join_code, avatar_id=str(avatar_id), pin_hash=_hash_secret(pin), now=now)
     student = _find_student(student_code)
     return _response(201, {"session": _issue_token("student", student_id, {"studentCode": student_code}), "profile": _profile(student), "game": None})
 
