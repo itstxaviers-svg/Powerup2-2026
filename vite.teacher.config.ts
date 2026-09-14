@@ -16,6 +16,7 @@ function teacherIndex(): Plugin {
 }
 
 export default defineConfig({
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [react(), teacherIndex()],
   build: { rollupOptions: { input: resolve(projectRoot, 'teacher.html') } },
 })

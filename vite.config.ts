@@ -24,5 +24,6 @@ function productionWebAssets(): Plugin {
 }
 
 export default defineConfig(({ command }) => ({
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [...(command === 'build' ? [productionWebAssets()] : []), react()],
 }))

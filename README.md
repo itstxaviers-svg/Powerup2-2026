@@ -4,6 +4,8 @@ An offline-capable English vocabulary adventure with separate student and teache
 
 Public source repository: [itstxaviers-svg/Powerup2-2026](https://github.com/itstxaviers-svg/Powerup2-2026).
 
+Public local-only demo: [student game](https://itstxaviers-svg.github.io/Powerup2-2026/) · [teacher preview](https://itstxaviers-svg.github.io/Powerup2-2026/teacher/). The Pages demo stores progress only in the current browser. Cross-device student accounts and a real class roster require the Yandex Cloud backend below.
+
 ## Repository storage
 
 - `Assets/` is the canonical master artwork archive. Its PNG, MP4, and ZIP files are stored with Git LFS.
