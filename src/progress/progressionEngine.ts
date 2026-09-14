@@ -29,7 +29,9 @@ export function evolutionStageFor(completedUnits: number): 1 | 2 | 3 | 4 {
   return 1
 }
 
-export const initiallyAvailableUnitIds = new Set(['unit-01', 'unit-02'])
+// Units 1–3 already contain production vocabulary and are available for class
+// review. Later cities keep the normal sequential lock until their content is ready.
+export const initiallyAvailableUnitIds = new Set(['unit-01', 'unit-02', 'unit-03'])
 
 export function isUnitUnlocked(progress: PlayerProgress, unitIndex: number, unlockAll = import.meta.env.VITE_UNLOCK_ALL_UNITS === 'true' || import.meta.env.VITE_DEMO_MODE === 'true') {
   const unit = units[unitIndex]

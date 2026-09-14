@@ -151,11 +151,12 @@ describe('Unit 2 production vocabulary', () => {
     expect(cityRevealByUnit['unit-02'].stages[1].name).toBe('Clock mechanism')
   })
 
-  it('makes Unit 2 available for review while preserving sequential access after it', () => {
+  it('makes the three production Units available while preserving sequential access after them', () => {
     const progress = createProgress(1)
     expect(isUnitUnlocked(progress, 0, false)).toBe(true)
     expect(isUnitUnlocked(progress, 1, false)).toBe(true)
-    expect(isUnitUnlocked(progress, 2, false)).toBe(false)
+    expect(isUnitUnlocked(progress, 2, false)).toBe(true)
+    expect(isUnitUnlocked(progress, 3, false)).toBe(false)
   })
 
   it('renders the real 44-word denominator and both Unit identities', () => {
