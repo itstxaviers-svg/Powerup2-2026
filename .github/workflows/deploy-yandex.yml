@@ -31,7 +31,24 @@ jobs:
           VITE_YANDEX_API_URL: ${{ secrets.YANDEX_API_URL }}
       - run: mv dist dist-teacher
 
+      - name: Check Yandex deployment configuration
+        id: deployment
+        shell: bash
+        env:
+          YC_ACCESS_KEY_ID: ${{ secrets.YC_ACCESS_KEY_ID }}
+          YC_SECRET_ACCESS_KEY: ${{ secrets.YC_SECRET_ACCESS_KEY }}
+          YC_STUDENT_BUCKET: ${{ secrets.YC_STUDENT_BUCKET }}
+          YC_TEACHER_BUCKET: ${{ secrets.YC_TEACHER_BUCKET }}
+        run: |
+          if [[ -n "$YC_ACCESS_KEY_ID" && -n "$YC_SECRET_ACCESS_KEY" && -n "$YC_STUDENT_BUCKET" && -n "$YC_TEACHER_BUCKET" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Yandex secrets are not configured yet; builds passed and upload is skipped."
+          fi
+
       - name: Upload student application
+        if: steps.deployment.outputs.ready == 'true'
         run: |
           aws --endpoint-url https://storage.yandexcloud.net s3 sync dist-student/assets "s3://${YC_STUDENT_BUCKET}/assets" --delete --cache-control "public,max-age=31536000,immutable"
           aws --endpoint-url https://storage.yandexcloud.net s3 sync dist-student "s3://${YC_STUDENT_BUCKET}" --delete --exclude "assets/*" --cache-control "no-cache"
@@ -42,6 +59,7 @@ jobs:
           YC_STUDENT_BUCKET: ${{ secrets.YC_STUDENT_BUCKET }}
 
       - name: Upload teacher dashboard
+        if: steps.deployment.outputs.ready == 'true'
         run: |
           aws --endpoint-url https://storage.yandexcloud.net s3 sync dist-teacher/assets "s3://${YC_TEACHER_BUCKET}/assets" --delete --cache-control "public,max-age=31536000,immutable"
           aws --endpoint-url https://storage.yandexcloud.net s3 sync dist-teacher "s3://${YC_TEACHER_BUCKET}" --delete --exclude "assets/*" --cache-control "no-cache"
