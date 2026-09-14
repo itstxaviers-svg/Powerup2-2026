@@ -1,0 +1,11 @@
+# Keep the private master artwork in GitHub LFS. The production build uses the
+# optimized WebAssets copies, so CI and the deployed site do not download LFS.
+Assets/**/*.png filter=lfs diff=lfs merge=lfs -text
+Assets/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+Assets/**/*.zip filter=lfs diff=lfs merge=lfs -text
+
+# Specialist Nova's intro PNGs stay in their canonical production folder and
+# are regular Git files because Vite imports them directly during deployment.
+Assets/05-games/word-strike/character/specialist-nova-intro-idle.png -filter -diff -merge -text
+Assets/05-games/word-strike/character/specialist-nova-intro-wink.png -filter -diff -merge -text
+Assets/05-games/word-strike/character/specialist-nova-intro-point.png -filter -diff -merge -text

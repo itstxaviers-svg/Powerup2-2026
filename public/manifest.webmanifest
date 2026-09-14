@@ -1,0 +1,12 @@
+{
+  "name": "Power Up 2 · Lightworld Academy",
+  "short_name": "Power Up 2",
+  "description": "English vocabulary adventures in the Arcane Lightworld.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#071d36",
+  "theme_color": "#0b6f98",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

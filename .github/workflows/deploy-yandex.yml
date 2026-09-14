@@ -1,0 +1,52 @@
+name: Deploy Power Up 2 to Yandex Object Storage
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Build student application
+        run: npm run build:student
+        env:
+          VITE_YANDEX_API_URL: ${{ secrets.YANDEX_API_URL }}
+      - run: mv dist dist-student
+
+      - name: Build teacher dashboard
+        run: npm run build:teacher
+        env:
+          VITE_YANDEX_API_URL: ${{ secrets.YANDEX_API_URL }}
+      - run: mv dist dist-teacher
+
+      - name: Upload student application
+        run: |
+          aws --endpoint-url https://storage.yandexcloud.net s3 sync dist-student/assets "s3://${YC_STUDENT_BUCKET}/assets" --delete --cache-control "public,max-age=31536000,immutable"
+          aws --endpoint-url https://storage.yandexcloud.net s3 sync dist-student "s3://${YC_STUDENT_BUCKET}" --delete --exclude "assets/*" --cache-control "no-cache"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.YC_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ru-central1
+          YC_STUDENT_BUCKET: ${{ secrets.YC_STUDENT_BUCKET }}
+
+      - name: Upload teacher dashboard
+        run: |
+          aws --endpoint-url https://storage.yandexcloud.net s3 sync dist-teacher/assets "s3://${YC_TEACHER_BUCKET}/assets" --delete --cache-control "public,max-age=31536000,immutable"
+          aws --endpoint-url https://storage.yandexcloud.net s3 sync dist-teacher "s3://${YC_TEACHER_BUCKET}" --delete --exclude "assets/*" --cache-control "no-cache"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.YC_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ru-central1
+          YC_TEACHER_BUCKET: ${{ secrets.YC_TEACHER_BUCKET }}
