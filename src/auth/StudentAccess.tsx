@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { cloudApiEnabled, loginStudent, registerStudent } from '../cloud/cloudClient'
 import { clearCloudSession } from '../cloud/cloudSession'
+import { avatars } from '../data/assets'
 import { CURRENT_SCHEMA_VERSION, createProfile, createProgress, defaultSettings } from '../progress/localProgressRepository'
 import type { SavedGame } from '../types/game'
 
@@ -63,7 +64,7 @@ export function StudentAccess({ onReady }: { onReady: (game: SavedGame) => void 
         <label>Student name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="First name or nickname" required autoComplete="name" /></label>
         <label>Group code<input value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase())} placeholder={cloudApiEnabled ? 'From your teacher' : 'For example, 2B'} required={cloudApiEnabled} autoCapitalize="characters" /></label>
         {cloudApiEnabled && <label>Create a 6-digit PIN<input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="••••••" inputMode="numeric" autoComplete="new-password" required /></label>}
-        <fieldset><legend>Choose your avatar</legend><div className="access-avatar-grid">{Array.from({ length: 10 }, (_, index) => index + 1).map((id) => <button key={id} type="button" aria-pressed={avatarId === id} className={avatarId === id ? 'selected' : ''} onClick={() => setAvatarId(id)}><span>{String(id).padStart(2, '0')}</span></button>)}</div></fieldset>
+        <fieldset><legend>Choose your avatar</legend><div className="access-avatar-grid">{avatars.map((avatar) => <button key={avatar.id} type="button" aria-label={avatar.name} aria-pressed={avatarId === avatar.id} className={avatarId === avatar.id ? 'selected' : ''} onClick={() => setAvatarId(avatar.id)}><img src={avatar.baseAsset} alt="" /><span>{String(avatar.id).padStart(2, '0')}</span></button>)}</div></fieldset>
       </> : <>
         <label>Explorer ID<input value={studentCode} onChange={(event) => setStudentCode(event.target.value.toUpperCase())} placeholder="For example, SOPHIE-482" autoCapitalize="characters" required /></label>
         <label>6-digit PIN<input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="••••••" inputMode="numeric" autoComplete="current-password" required /></label>
