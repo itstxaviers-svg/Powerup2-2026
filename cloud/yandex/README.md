@@ -27,10 +27,10 @@ YDB_ENDPOINT=grpcs://ydb.serverless.yandexcloud.net:2135
 YDB_DATABASE=/ru-central1/.../...
 AUTH_SECRET=<at least 32 random bytes>
 BOOTSTRAP_SECRET=<a different long random value>
-ALLOWED_ORIGINS=https://<student-bucket>.website.yandexcloud.net,https://<teacher-bucket>.website.yandexcloud.net
+ALLOWED_ORIGINS=https://<student-bucket>.website.yandexcloud.net|https://<teacher-bucket>.website.yandexcloud.net
 ```
 
-List both exact website origins in `ALLOWED_ORIGINS`, separated by a comma and without a trailing slash. Never put `AUTH_SECRET`, `BOOTSTRAP_SECRET`, passwords, or service-account keys into Vite variables or GitHub files.
+List both exact website origins in `ALLOWED_ORIGINS`, separated by `|` and without a trailing slash. Never put `AUTH_SECRET`, `BOOTSTRAP_SECRET`, passwords, or service-account keys into Vite variables or GitHub files.
 
 ## 3. Create API Gateway
 

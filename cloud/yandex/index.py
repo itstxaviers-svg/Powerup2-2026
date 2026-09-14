@@ -23,7 +23,7 @@ _request_origin = contextvars.ContextVar("request_origin", default="")
 
 def _cors_headers():
     configured = os.environ.get("ALLOWED_ORIGINS") or os.environ.get("ALLOWED_ORIGIN") or "*"
-    allowed = [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()]
+    allowed = [origin.strip().rstrip("/") for origin in re.split(r"[,|]", configured) if origin.strip()]
     requested = _request_origin.get().rstrip("/")
     allow_origin = "*" if "*" in allowed else (requested if requested in allowed else (allowed[0] if allowed else "null"))
     return {
