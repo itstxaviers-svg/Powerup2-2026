@@ -34,12 +34,14 @@ jobs:
         run: npm run build:student
         env:
           VITE_BASE_PATH: /Powerup2-2026/
+          VITE_YANDEX_API_URL: ${{ secrets.YANDEX_API_URL }}
       - run: mv dist pages-site
 
       - name: Build teacher demo
         run: npm run build:teacher
         env:
           VITE_BASE_PATH: /Powerup2-2026/teacher/
+          VITE_YANDEX_API_URL: ${{ secrets.YANDEX_API_URL }}
       - run: mkdir -p pages-site/teacher && cp -R dist/. pages-site/teacher/
 
       - uses: actions/configure-pages@v5
