@@ -42,14 +42,14 @@ const opponentsByUnit: Record<string, Record<OpponentRole, OpponentId>> = {
   'unit-03': { rival: 'roseclock-duchess', boss: 'thornbound-archivist' },
 }
 
-export function resolveOpponentForUnit(unitId: string, role: OpponentRole): OpponentId {
-  return opponentsByUnit[unitId]?.[role] ?? opponentsByUnit['unit-01'][role]
+export function resolveOpponentForUnit(unitId: string, role: OpponentRole): OpponentId | undefined {
+  return opponentsByUnit[unitId]?.[role]
 }
 
-export const opponentsForUnit = (unitId: string): OpponentId[] => [
-  resolveOpponentForUnit(unitId, 'rival'),
-  resolveOpponentForUnit(unitId, 'boss'),
-]
+export const opponentsForUnit = (unitId: string): OpponentId[] => {
+  const pair = opponentsByUnit[unitId]
+  return pair ? [pair.rival, pair.boss] : []
+}
 
 export const challengeOrder: FighterChallengeKind[] = ['quick', 'defense', 'spelling', 'audio', 'meaning', 'combo', 'ultimate']
 const has = (value?: string) => Boolean(value?.trim())

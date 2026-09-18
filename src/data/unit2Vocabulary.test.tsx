@@ -56,7 +56,7 @@ describe('Unit 2 production vocabulary', () => {
     expect(new Set(unit2Vocabulary.map((word) => word.word.toLocaleLowerCase())).size).toBe(44)
     expect(unit2Vocabulary.every((word) => /^u2-/.test(word.id) && word.word.trim() && word.translation?.trim() && word.example?.trim())).toBe(true)
     expect(validateVocabulary(units)).toEqual([])
-    expect(units.slice(3).every((unit) => unit.words.length === 0)).toBe(true)
+    expect(units.slice(4).every((unit) => unit.words.length === 0)).toBe(true)
   })
 
   it('keeps multiword phrases as single stable records and preserves supplied clues', () => {

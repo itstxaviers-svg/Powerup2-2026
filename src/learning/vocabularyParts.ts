@@ -20,6 +20,11 @@ export const vocabularyPartLabels: Record<string, Partial<Record<VocabularySourc
     3: 'Part 3 · Party time! People who help us',
     4: 'Part 4 · Party time! Literature',
   },
+  'unit-04': {
+    1: 'Part 1 · The family at home. Vocabulary 1',
+    2: 'Part 2 · The family at home. Place to live',
+    3: 'Part 3 · The family at home. Machines in our home',
+  },
 }
 
 export function availableVocabularyParts(words: UnitWord[]): VocabularySourcePart[] {

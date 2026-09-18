@@ -102,6 +102,6 @@ describe('vocabulary Part selection', () => {
   })
 
   it('does not change empty future Units', () => {
-    expect(units.slice(3).every((unit) => unit.words.length === 0)).toBe(true)
+    expect(units.slice(4).every((unit) => unit.words.length === 0)).toBe(true)
   })
 })

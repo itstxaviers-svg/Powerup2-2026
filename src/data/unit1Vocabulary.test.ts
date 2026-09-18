@@ -39,7 +39,7 @@ describe('Unit 1 production vocabulary', () => {
       expect(word.sourceTitle).toBe(source.title)
       expect(word.sourcePage).toBe(source.page)
     })
-    expect(units.slice(3).every((unit) => unit.words.length === 0)).toBe(true)
+    expect(units.slice(4).every((unit) => unit.words.length === 0)).toBe(true)
   })
 
   it('contains complete, unique production records with stable local production audio', () => {

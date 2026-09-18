@@ -17,6 +17,9 @@ describe('Unit-aware Code Fighter opponents', () => {
     expect(opponentsForUnit('unit-01')).toEqual(['kael', 'construct'])
     expect(opponentsForUnit('unit-02')).toEqual(['lady-gearveil', 'chronofang'])
     expect(opponentsForUnit('unit-03')).toEqual(['roseclock-duchess', 'thornbound-archivist'])
+    expect(resolveOpponentForUnit('unit-04', 'rival')).toBeUndefined()
+    expect(resolveOpponentForUnit('unit-04', 'boss')).toBeUndefined()
+    expect(opponentsForUnit('unit-04')).toEqual([])
   })
 
   it('renders only the selected Unit opponent pair', () => {
@@ -48,6 +51,12 @@ describe('Unit-aware Code Fighter opponents', () => {
     expect(unit3).toContain('Thornbound Archivist')
     expect(unit3).not.toContain('Lady Gearveil')
     expect(unit3).not.toContain('Chronofang')
+
+    const unit4 = renderSelection(3)
+    expect(unit4).toContain('Unit 4 vocabulary is ready')
+    expect(unit4).toContain('Opponent pending')
+    expect(unit4).not.toContain('Rival Kael')
+    expect(unit4).not.toContain('Corrupted Construct')
   })
 
   it('uses the correct Unit 3 action and result art without mirroring', () => {

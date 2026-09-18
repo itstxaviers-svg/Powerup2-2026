@@ -122,7 +122,8 @@ export function rosterRecords(allUnits: readonly UnitData[], milestoneId: Fighti
   return ids.flatMap((id) => byId.get(id) ?? [])
 }
 
-export const isPictureEligibleForFighting = (word: UnitWord) => Boolean(fightingPictureClueForWord(word.id))
+export const isPictureEligibleForFighting = (word: UnitWord) =>
+  word.pictureEligible ?? Boolean(fightingPictureClueForWord(word.id))
 export const fightingAudioSource = (word: UnitWord) => word.audio || 'browser-speech'
 
 export const fallbackFightingTaskToAudio = (task: FightingTask, word: UnitWord): FightingTask => task.mode === 'audio' ? task : {
@@ -134,7 +135,9 @@ export const fallbackFightingTaskToAudio = (task: FightingTask, word: UnitWord):
 
 export function buildFightingTasks(records: readonly FightingVocabularyRecord[], seed: number): FightingTask[] {
   const shuffled = stableShuffle(records, seed, (record) => record.word.id)
-  const eligiblePictures = stableShuffle(shuffled.filter((record) => isPictureEligibleForFighting(record.word)), seed + 17, (record) => record.word.id)
+  const eligiblePictures = stableShuffle(shuffled.filter((record) =>
+    isPictureEligibleForFighting(record.word) && Boolean(fightingPictureClueForWord(record.word.id)),
+  ), seed + 17, (record) => record.word.id)
   const pictureTarget = Math.min(eligiblePictures.length, Math.round(shuffled.length / 3))
   const pictureIds = new Set(eligiblePictures.slice(0, pictureTarget).map((record) => record.word.id))
   return shuffled.map((record) => pictureIds.has(record.word.id)

@@ -11,9 +11,9 @@ describe('module vocabulary eligibility', () => {
     for (const moduleId of moduleIds) expect(eligibleWordsForModule(unit1Vocabulary, moduleId)).toHaveLength(50)
   })
 
-  it('keeps empty future Units incomplete with a zero eligible denominator', () => {
+  it('keeps empty future Units after populated Unit 4 incomplete with a zero eligible denominator', () => {
     const progress = createProgress(1)
-    for (const unit of units.slice(3)) {
+    for (const unit of units.slice(4)) {
       for (const moduleId of moduleIds) {
         expect(coverageForModule(unit, moduleId, progress.units[unit.id].modules[moduleId])).toEqual({ trained: 0, total: 0, complete: false })
       }

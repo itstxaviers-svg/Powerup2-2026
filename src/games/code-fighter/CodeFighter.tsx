@@ -77,6 +77,7 @@ export function CodeFighter(props: CodeFighterProps) {
   })
 
   if (!initialChallenge) return <FighterUnavailable scopeLabel={props.scopeLabel} onBack={props.onBack} />
+  if (!opponentsForUnit(props.unit.id).length) return <FighterOpponentPending scopeLabel={props.scopeLabel} onBack={props.onBack} />
   if (!opponentId) return <OpponentSelect unitId={props.unit.id} scopeLabel={props.scopeLabel} onSelect={(id) => { setOpponentId(id); playFighterSound('battleStart') }} onBack={props.onBack} />
   return <FighterBattle key={opponentId} {...props} opponentId={opponentId} initialChallenge={initialChallenge} />
 }
@@ -333,6 +334,11 @@ function OpponentSelect({ unitId, scopeLabel, onSelect, onBack }: { unitId: stri
 function FighterUnavailable({ scopeLabel, onBack }: { scopeLabel: string; onBack: () => void }) {
   useEnterAction(onBack)
   return <main className="fighter-shell awaiting-shell"><FighterRotatePrompt /><header className="fighter-topbar"><button className="back-button" type="button" onClick={onBack}>← <span>Unit hub</span></button><span className="training-scope-badge">{scopeLabel}</span></header><section className="awaiting-card"><p className="eyebrow">Content pending</p><h1>The arena is charging</h1><p>Your teacher will add this Unit’s vocabulary before Code Fighter challenges begin.</p><button className="primary-button" type="button" onClick={onBack} aria-keyshortcuts="Enter" data-enter-action>Return to unit</button></section></main>
+}
+
+function FighterOpponentPending({ scopeLabel, onBack }: { scopeLabel: string; onBack: () => void }) {
+  useEnterAction(onBack)
+  return <main className="fighter-shell awaiting-shell"><FighterRotatePrompt /><header className="fighter-topbar"><button className="back-button" type="button" onClick={onBack}>← <span>Unit hub</span></button><span className="training-scope-badge">{scopeLabel}</span></header><section className="awaiting-card"><p className="eyebrow">Opponent pending</p><h1>Unit 4 vocabulary is ready</h1><p>Code Fighter will open when the approved Crystal Library opponents are added. No opponent from another Unit is used as a substitute.</p><button className="primary-button" type="button" onClick={onBack} aria-keyshortcuts="Enter" data-enter-action>Return to unit</button></section></main>
 }
 
 export function BattleResult({ victory, scopeLabel, opponent, opponentId, avatarId, accuracy, trained, total, reducedMotion = false, onRetry, onBack }: { victory: boolean; scopeLabel: string; opponent: string; opponentId: OpponentId; avatarId: number; accuracy: number; trained: number; total: number; reducedMotion?: boolean; onRetry?: () => void; onBack: () => void }) {
