@@ -11,12 +11,11 @@ export const unit3VocabularySources: Record<Unit3VocabularySourcePart, { title: 
 
 type PartWord = Omit<UnitWord, 'sourcePart' | 'sourceTitle' | 'sourcePage' | 'audio'>
 
-// Unit 3 follows Unit 2's production audio policy until recorded MP3s exist.
 const fromPart = (sourcePart: Unit3VocabularySourcePart, word: PartWord): UnitWord => ({
   ...word,
   sourcePart,
   sourceTitle: unit3VocabularySources[sourcePart].title,
-  audio: 'browser-speech',
+  audio: `/assets/audio/unit-03/${word.id}.mp3`,
 })
 
 export const unit3Vocabulary: UnitWord[] = [

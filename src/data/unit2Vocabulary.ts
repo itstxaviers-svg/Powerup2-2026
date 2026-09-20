@@ -11,13 +11,11 @@ export const unit2VocabularySources: Record<Unit2VocabularySourcePart, { title: 
 
 type PartWord = Omit<UnitWord, 'sourcePart' | 'sourceTitle' | 'sourcePage' | 'audio'>
 
-// Unit 2 does not yet have recorded MP3 files. The canonical audio pipeline
-// uses this source marker to pronounce production text with browser speech.
 const fromPart = (sourcePart: Unit2VocabularySourcePart, word: PartWord): UnitWord => ({
   ...word,
   sourcePart,
   sourceTitle: unit2VocabularySources[sourcePart].title,
-  audio: 'browser-speech',
+  audio: `/assets/audio/unit-02/${word.id}.mp3`,
 })
 
 export const unit2Vocabulary: UnitWord[] = [

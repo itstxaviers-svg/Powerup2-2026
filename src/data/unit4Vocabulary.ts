@@ -14,7 +14,7 @@ const fromPart = (sourcePart: Unit4VocabularySourcePart, word: PartWord): UnitWo
   ...word,
   sourcePart,
   sourceTitle: unit4VocabularySources[sourcePart].title,
-  audio: 'browser-speech',
+  audio: `/assets/audio/unit-04/${word.id}.mp3`,
 })
 
 export const unit4Vocabulary: UnitWord[] = [

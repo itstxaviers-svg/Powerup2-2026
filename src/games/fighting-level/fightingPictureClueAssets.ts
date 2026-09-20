@@ -41,6 +41,23 @@ import u3Moustache from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTI
 import u3Scarecrow from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-03/u3-scarecrow.png'
 import u3Smile from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-03/u3-smile.png'
 import u3Treasure from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-03/u3-treasure.png'
+import u4Balcony from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебный_балкон_над_городом.png'
+import u4Basement from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/уютный_сказочный_дом_с_таинственным_подвалом.png'
+import u4Bicycle from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебный_велосипед_у_уютного_дома.png'
+import u4Camera from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебная_камера_в_кабинете.png'
+import u4Computer from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебное_стимпанк_рабочее_место.png'
+import u4Dishwasher from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/сказочная_кухня_со_стальным_блеском.png'
+import u4FoodMixer from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебный_красный_миксер_на_кухне.png'
+import u4Hairdryer from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебный_бирюзовый_фен_со_шестерёнками.png'
+import u4Lift from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебный_лифт_в_стимпанк_лобби.png'
+import u4PencilSharpener from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебная_точилка_со_стружкой.png'
+import u4Roof from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/сказочная_крыша_со_steampunk_деталями.png'
+import u4Smartphone from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/стильный_стимпанк_смартфон_на_уютном_столе.png'
+import u4Stapler from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебный_стимпанк_степлер_на_столе.png'
+import u4Stairs from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебная_лестница_в_уютном_доме.png'
+import u4Swing from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебный_сад_со_стимпанк_качелями.png'
+import u4VacuumCleaner from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/волшебный_пылесос_в_уютной_гостиной.png'
+import u4WashingMachine from '../../../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2/unit-04/magische_steampunk_waschmaschine.png'
 
 export const fightingPictureClueAssets = {
   'u1-factory': u1Factory,
@@ -86,6 +103,23 @@ export const fightingPictureClueAssets = {
   'u3-scarecrow': u3Scarecrow,
   'u3-smile': u3Smile,
   'u3-treasure': u3Treasure,
+  'u4-balcony': u4Balcony,
+  'u4-basement': u4Basement,
+  'u4-bicycle': u4Bicycle,
+  'u4-camera': u4Camera,
+  'u4-computer': u4Computer,
+  'u4-dishwasher': u4Dishwasher,
+  'u4-food-mixer': u4FoodMixer,
+  'u4-hairdryer': u4Hairdryer,
+  'u4-lift': u4Lift,
+  'u4-pencil-sharpener': u4PencilSharpener,
+  'u4-roof': u4Roof,
+  'u4-smartphone': u4Smartphone,
+  'u4-stapler': u4Stapler,
+  'u4-stairs': u4Stairs,
+  'u4-swing': u4Swing,
+  'u4-vacuum-cleaner': u4VacuumCleaner,
+  'u4-washing-machine': u4WashingMachine,
 } as const satisfies Readonly<Record<string, string>>
 
 export type FightingPictureClueWordId = keyof typeof fightingPictureClueAssets

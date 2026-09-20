@@ -8,6 +8,7 @@
     "dev:student": "vite --host 127.0.0.1 --port 4173",
     "dev:teacher": "vite --host 127.0.0.1 --port 4174",
     "assets:web": "node scripts/build-web-assets.mjs",
+    "audio:vocabulary": "node scripts/build-vocabulary-audio.mjs",
     "build": "tsc -b && vite build",
     "build:student": "tsc -b && VITE_APP_ROLE=student VITE_REQUIRE_LOGIN=true vite build",
     "build:teacher": "tsc -b && VITE_REQUIRE_LOGIN=true vite build --config vite.teacher.config.ts",

@@ -79,7 +79,7 @@ describe('Unit 4 production vocabulary', () => {
     unit4Vocabulary.forEach((word) => {
       expect(word.definition?.length, word.word).toBeGreaterThan(5)
       expect(word.example, word.word).toContain('____')
-      expect(word.audio).toBe('browser-speech')
+      expect(word.audio).toBe(`/assets/audio/unit-04/${word.id}.mp3`)
       expect(word.typoForms, word.word).toHaveLength(3)
       word.typoForms?.forEach((variant) => expect(isPlausibleSpellingVariant(word, variant), `${word.word} -> ${variant}`).toBe(true))
       expect(errorHuntVariants(word).length, word.word).toBeGreaterThanOrEqual(3)
@@ -161,12 +161,17 @@ describe('Unit 4 checkpoint picture eligibility', () => {
     expect(byTarget('vacuum').pictureEligible).toBe(false)
   })
 
-  it('falls back to Audio until approved Unit 4 picture assets exist', () => {
-    pictureTargets.forEach((target) => expect(fightingPictureClueForWord(byTarget(target).id)).toBeUndefined())
+  it('connects every approved Unit 4 picture and keeps audio for the other words', () => {
+    pictureTargets.forEach((target) => expect(fightingPictureClueForWord(byTarget(target).id), target).toBeDefined())
+    audioTargets.forEach((target) => expect(fightingPictureClueForWord(byTarget(target).id), target).toBeUndefined())
     const records = unit4Vocabulary.map((word) => ({ unitId: 'unit-04', unitNumber: 4, word }))
     const tasks = buildFightingTasks(records, 17)
     expect(tasks).toHaveLength(33)
-    expect(tasks.every((task) => task.mode === 'audio' && task.audioSource === 'browser-speech')).toBe(true)
+    expect(tasks.filter((task) => task.mode === 'picture')).toHaveLength(11)
+    expect(tasks.filter((task) => task.mode === 'audio')).toHaveLength(22)
+    expect(tasks.filter((task) => task.mode === 'picture').every((task) => Boolean(task.pictureSource))).toBe(true)
+    expect(tasks.filter((task) => task.mode === 'audio').every((task) => task.audioSource === `/assets/audio/unit-04/${task.wordId}.mp3`)).toBe(true)
+    expect(buildFightingTasks(records, 18).map((task) => task.wordId)).not.toEqual(tasks.map((task) => task.wordId))
   })
 
   it('does not change the post-Unit-7 checkpoint rules', () => {

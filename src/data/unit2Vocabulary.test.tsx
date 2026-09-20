@@ -102,7 +102,7 @@ describe('Unit 2 production vocabulary', () => {
       const round = createWordStrikeRound({ unitId: 'unit-02', level, allWords: unit2Vocabulary, weakWords: {}, reviewIndex: index, recentWordIds: [] })
       expect(round?.targets).toHaveLength(3)
       expect(round?.targets.filter((target) => target.word === round.answer)).toHaveLength(1)
-      if (level.id === 'audio') expect(round?.audio).toBe('browser-speech')
+      if (level.id === 'audio') expect(round?.audio).toMatch(/^\/assets\/audio\/unit-02\/u2-[a-z0-9-]+\.mp3$/)
     })
 
     expect(availableFighterKinds(unit2Vocabulary, 4)).toEqual(['quick', 'defense', 'spelling', 'audio', 'meaning', 'combo', 'ultimate'])
