@@ -121,14 +121,10 @@ legend { color: #244359; font-size: .85rem; font-weight: 700; margin-bottom: .65
 .module-card { display: flex; align-items: center; gap: .8rem; min-height: 116px; padding: 1rem; border: 1px solid #d3e4de; border-radius: 16px; background: linear-gradient(140deg, #fffef8, #e8f6f4); }
 .module-card:last-child { grid-column: 1 / -1; }
 .module-card.completed { border-color: #d6b34e; background: linear-gradient(140deg,#fff9d9,#dcf7f2); }.module-card.completed .module-icon { border-color: #e2c052; box-shadow: 0 7px 17px rgba(103,77,7,.2),inset 0 0 0 1px rgba(255,249,198,.7); }.module-card.completed .module-icon small { color: #fff; border-color: #55cbd1; background: #07849b; }
-.module-icon { position: relative; display: block; flex: 0 0 72px; width: 72px; height: 72px; overflow: hidden; border: 2px solid #77c8ce; border-radius: 18px; background-color: #092d47; background-repeat: no-repeat; box-shadow: 0 7px 17px rgba(12,67,86,.16),inset 0 0 0 1px rgba(255,255,255,.55); }
+.module-icon { position: relative; display: block; flex: 0 0 72px; width: 72px; height: 72px; overflow: hidden; border: 2px solid #77c8ce; border-radius: 18px; background-color: #092d47; box-shadow: 0 7px 17px rgba(12,67,86,.16),inset 0 0 0 1px rgba(255,255,255,.55); }
+.module-icon-art { display: block; width: 100%; height: 100%; object-fit: cover; }
 .module-icon::after { position: absolute; content: ''; inset: 0; border-radius: inherit; background: linear-gradient(145deg,rgba(255,255,255,.18),transparent 43%,rgba(0,39,60,.22)); pointer-events: none; }
 .module-icon small { position: absolute; z-index: 1; right: 4px; bottom: 4px; display: grid; min-width: 25px; height: 22px; padding: 0 5px; place-items: center; color: #07526d; font-family: Unbounded,sans-serif; font-size: .54rem; line-height: 1; border: 1px solid #e6bd5c; border-radius: 999px; background: #fff1bd; box-shadow: 0 2px 7px rgba(0,27,42,.3); }
-.module-icon-repair { background-size: 220%; background-position: 20% 50%; }
-.module-icon-error-hunt { background-size: 210%; background-position: 20% 50%; }
-.module-icon-audio-code { background-size: 220%; background-position: 7% 39%; }
-.module-icon-word-strike { background-size: 220%; background-position: 30% 12%; }
-.module-icon-code-fighter { background-size: cover; background-position: center; }
 .module-card div { flex: 1; }
 .module-card h3 { margin-bottom: .35rem; color: #21485e; font-family: 'DM Sans', sans-serif; font-size: 1rem; letter-spacing: 0; }
 .module-card p { margin-bottom: 0; color: #688293; font-size: .8rem; }

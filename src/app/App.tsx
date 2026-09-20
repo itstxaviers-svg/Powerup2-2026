@@ -46,11 +46,11 @@ const modules: Array<{ id: ModuleId; title: string; description: string }> = [
 ]
 
 const moduleIconAssets: Record<ModuleId, string> = {
-  repair: assets.repairMachine,
-  'error-hunt': assets.errorHuntAnalyzer,
-  'audio-code': assets.audioDevice,
-  'word-strike': assets.wordStrikeCannon,
-  'code-fighter': assets.codeFighterCard,
+  repair: assets.moduleIcons.repair,
+  'error-hunt': assets.moduleIcons.errorHunt,
+  'audio-code': assets.moduleIcons.audioCode,
+  'word-strike': assets.moduleIcons.wordStrike,
+  'code-fighter': assets.moduleIcons.codeFighter,
 }
 
 export function App() {
@@ -345,7 +345,7 @@ export function UnitHub({ unit, profile, progress, selectedParts, onPartSelectio
         const moduleProgress = progress.units[unit.id].modules[module.id]
         const coverage = coverageForModule(unit, module.id, moduleProgress)
         return <article className={`module-card ${coverage.complete ? 'completed' : ''}`} key={module.id}>
-          <span className={`module-icon module-icon-${module.id}`} style={{ backgroundImage: `url(${moduleIconAssets[module.id]})` }} aria-hidden="true"><small>{coverage.complete ? '✓' : `0${index + 1}`}</small></span><div><h3>{module.title}</h3><p>{module.description}</p>{coverage.total > 0 && <span className="module-coverage"><span>{coverage.trained} / {coverage.total} words trained{coverage.complete ? ' · Complete' : ''}</span><i><b style={{ width: `${coverage.trained / coverage.total * 100}%` }} /></i></span>}</div><button className="module-open" type="button" onClick={() => onOpenModule(module.id)}>{coverage.complete ? 'Replay' : coverage.trained > 0 ? 'Continue' : 'Open'}</button>
+          <span className={`module-icon module-icon-${module.id}`} aria-hidden="true"><img className="module-icon-art" src={moduleIconAssets[module.id]} alt="" /><small>{coverage.complete ? '✓' : `0${index + 1}`}</small></span><div><h3>{module.title}</h3><p>{module.description}</p>{coverage.total > 0 && <span className="module-coverage"><span>{coverage.trained} / {coverage.total} words trained{coverage.complete ? ' · Complete' : ''}</span><i><b style={{ width: `${coverage.trained / coverage.total * 100}%` }} /></i></span>}</div><button className="module-open" type="button" onClick={() => onOpenModule(module.id)}>{coverage.complete ? 'Replay' : coverage.trained > 0 ? 'Continue' : 'Open'}</button>
         </article>
       })}</div>
     </section>

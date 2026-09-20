@@ -84,6 +84,11 @@ import evolution10Stage3 from '../../Assets/03-avatars/evolution/avatar-10-evolu
 import evolution10Stage4 from '../../Assets/03-avatars/evolution/avatar-10-evolution/4.png'
 import codeFighterArena from '../../Assets/05-games/code-fighter/code-fighter-arena.png'
 import codeFighterCard from '../../Assets/05-games/code-fighter/code-fighter-card.png'
+import repairModuleIcon from '../../WebAssets/ui/module-icons/repair.webp'
+import errorHuntModuleIcon from '../../WebAssets/ui/module-icons/error-hunt.webp'
+import audioCodeModuleIcon from '../../WebAssets/ui/module-icons/audio-code.webp'
+import wordStrikeModuleIcon from '../../WebAssets/ui/module-icons/word-strike.webp'
+import codeFighterModuleIcon from '../../WebAssets/ui/module-icons/code-fighter.webp'
 import codeFighterEffects from '../../Assets/07-effects/code-fighter-effects-sheet.png'
 import fighterProjectiles from '../../Assets/07-effects/fighter-projectiles-effects-sheet.png'
 import rewardChestSheet from '../../Assets/06-rewards/reward-chest-sheet.png'
@@ -133,6 +138,13 @@ export const assets = {
   audioGuidePointRight,
   codeFighterArena,
   codeFighterCard,
+  moduleIcons: {
+    repair: repairModuleIcon,
+    errorHunt: errorHuntModuleIcon,
+    audioCode: audioCodeModuleIcon,
+    wordStrike: wordStrikeModuleIcon,
+    codeFighter: codeFighterModuleIcon,
+  },
   codeFighterEffects,
   fighterProjectiles,
   rewardChestSheet,

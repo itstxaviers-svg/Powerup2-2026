@@ -9,6 +9,14 @@ const outputRoot = join(projectRoot, 'WebAssets')
 const force = process.argv.includes('--force')
 const maxDimension = 1280
 const webpOptions = { quality: 62, alphaQuality: 80, effort: 6, smartSubsample: true }
+const moduleIconOptions = { quality: 74, alphaQuality: 85, effort: 6, smartSubsample: true }
+const moduleIcons = [
+  ['repair', '05-games/repair/repair-machine.png', 'attention'],
+  ['error-hunt', '05-games/error-hunt/error-hunt-spelling-analyzer.png', 'left'],
+  ['audio-code', '05-games/audio-code/audio-code-device.png', 'left'],
+  ['word-strike', '05-games/word-strike/word-strike-cannon.png', 'attention'],
+  ['code-fighter', '05-games/code-fighter/code-fighter-card.png', 'centre'],
+]
 const unit4PictureAliases = [
   [/балкон/u, 'u4-balcony.webp'],
   [/подвал/u, 'u4-basement.webp'],
@@ -74,4 +82,16 @@ async function worker() {
 }
 
 await Promise.all(Array.from({ length: 4 }, () => worker()))
-console.log(`Web assets ready: ${sources.length} total, ${converted} converted.`)
+
+for (const [name, sourcePath, position] of moduleIcons) {
+  const output = join(outputRoot, 'ui', 'module-icons', `${name}.webp`)
+  await mkdir(dirname(output), { recursive: true })
+  await sharp(join(sourceRoot, sourcePath))
+    .rotate()
+    .resize({ width: 256, height: 256, fit: 'cover', position })
+    .flatten({ background: '#092d47' })
+    .webp(moduleIconOptions)
+    .toFile(output)
+}
+
+console.log(`Web assets ready: ${sources.length} total, ${converted} converted, ${moduleIcons.length} module icons refreshed.`)

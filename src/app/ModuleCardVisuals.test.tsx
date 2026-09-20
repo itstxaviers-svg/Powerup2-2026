@@ -23,6 +23,7 @@ describe('Unit task-card visuals', () => {
     />)
 
     expect(html.match(/class="module-icon module-icon-/g)).toHaveLength(5)
+    expect(html.match(/class="module-icon-art"/g)).toHaveLength(5)
     for (const moduleId of ['repair', 'error-hunt', 'audio-code', 'word-strike', 'code-fighter']) {
       expect(html).toContain(`module-icon-${moduleId}`)
     }
