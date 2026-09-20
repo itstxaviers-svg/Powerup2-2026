@@ -6,7 +6,9 @@ import sharp from 'sharp'
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const sourceRoot = join(projectRoot, 'Assets')
 const outputRoot = join(projectRoot, 'WebAssets')
-const novaPattern = /word-strike\/character\/specialist-nova-intro-(idle|wink|point)\.png$/
+const force = process.argv.includes('--force')
+const maxDimension = 1280
+const webpOptions = { quality: 62, alphaQuality: 80, effort: 6, smartSubsample: true }
 const unit4PictureAliases = [
   [/балкон/u, 'u4-balcony.webp'],
   [/подвал/u, 'u4-basement.webp'],
@@ -43,7 +45,7 @@ async function collect(directory) {
   return nested.flat()
 }
 
-const sources = (await collect(sourceRoot)).filter((path) => path.endsWith('.png') && !novaPattern.test(path))
+const sources = (await collect(sourceRoot)).filter((path) => path.endsWith('.png'))
 let cursor = 0
 let converted = 0
 
@@ -56,12 +58,16 @@ async function worker() {
     for (const output of targets) {
       try {
         const targetInfo = await stat(output)
-        if (targetInfo.mtimeMs >= sourceInfo.mtimeMs) continue
+        if (!force && targetInfo.mtimeMs >= sourceInfo.mtimeMs) continue
       } catch {
         // A missing derivative is generated below.
       }
       await mkdir(dirname(output), { recursive: true })
-      await sharp(source).webp({ quality: 82, alphaQuality: 95, effort: 5 }).toFile(output)
+      await sharp(source)
+        .rotate()
+        .resize({ width: maxDimension, height: maxDimension, fit: 'inside', withoutEnlargement: true })
+        .webp(webpOptions)
+        .toFile(output)
       converted += 1
     }
   }

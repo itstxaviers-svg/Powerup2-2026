@@ -15,7 +15,7 @@ function productionWebAssets(): Plugin {
       return code.replaceAll('../../../Assets/05-games/code-fighter/players/', '../../../WebAssets/05-games/code-fighter/players/').replaceAll('/*.png', '/*.webp').replaceAll("}.png`", "}.webp`")
     },
     resolveId(source, importer) {
-      if (!importer || !source.includes('Assets/') || !source.endsWith('.png') || source.includes('specialist-nova-intro-')) return null
+      if (!importer || !source.includes('Assets/') || !source.endsWith('.png')) return null
       const original = resolve(dirname(importer), source)
       const webAsset = original.replace(`${resolve(projectRoot, 'Assets')}/`, `${resolve(projectRoot, 'WebAssets')}/`).replace(/\.png$/, '.webp')
       return existsSync(webAsset) ? webAsset : null
