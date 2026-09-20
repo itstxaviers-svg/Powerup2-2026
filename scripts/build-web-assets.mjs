@@ -7,6 +7,32 @@ const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const sourceRoot = join(projectRoot, 'Assets')
 const outputRoot = join(projectRoot, 'WebAssets')
 const novaPattern = /word-strike\/character\/specialist-nova-intro-(idle|wink|point)\.png$/
+const unit4PictureAliases = [
+  [/балкон/u, 'u4-balcony.webp'],
+  [/подвал/u, 'u4-basement.webp'],
+  [/велосипед/u, 'u4-bicycle.webp'],
+  [/камера/u, 'u4-camera.webp'],
+  [/рабочее_место/u, 'u4-computer.webp'],
+  [/кухня_со_стальным/u, 'u4-dishwasher.webp'],
+  [/миксер/u, 'u4-food-mixer.webp'],
+  [/фен/u, 'u4-hairdryer.webp'],
+  [/лифт/u, 'u4-lift.webp'],
+  [/точилка/u, 'u4-pencil-sharpener.webp'],
+  [/крыша/u, 'u4-roof.webp'],
+  [/смартфон/u, 'u4-smartphone.webp'],
+  [/степлер/u, 'u4-stapler.webp'],
+  [/лестница/u, 'u4-stairs.webp'],
+  [/качелями/u, 'u4-swing.webp'],
+  [/пылесос/u, 'u4-vacuum-cleaner.webp'],
+  [/magische_steampunk_waschmaschine/u, 'u4-washing-machine.webp'],
+]
+
+const stableAliasFor = (source) => {
+  const relativePath = relative(sourceRoot, source).normalize('NFC')
+  if (!relativePath.includes('/unit-04/')) return undefined
+  const match = unit4PictureAliases.find(([pattern]) => pattern.test(relativePath))
+  return match ? join(dirname(join(outputRoot, relative(sourceRoot, source))), match[1]) : undefined
+}
 
 async function collect(directory) {
   const entries = await readdir(directory, { withFileTypes: true })
@@ -25,15 +51,19 @@ async function worker() {
   while (cursor < sources.length) {
     const source = sources[cursor++]
     const target = join(outputRoot, relative(sourceRoot, source).replace(/\.png$/, '.webp'))
-    try {
-      const [sourceInfo, targetInfo] = await Promise.all([stat(source), stat(target)])
-      if (targetInfo.mtimeMs >= sourceInfo.mtimeMs) continue
-    } catch {
-      // A missing derivative is generated below.
+    const targets = [target, stableAliasFor(source)].filter(Boolean)
+    const sourceInfo = await stat(source)
+    for (const output of targets) {
+      try {
+        const targetInfo = await stat(output)
+        if (targetInfo.mtimeMs >= sourceInfo.mtimeMs) continue
+      } catch {
+        // A missing derivative is generated below.
+      }
+      await mkdir(dirname(output), { recursive: true })
+      await sharp(source).webp({ quality: 82, alphaQuality: 95, effort: 5 }).toFile(output)
+      converted += 1
     }
-    await mkdir(dirname(target), { recursive: true })
-    await sharp(source).webp({ quality: 82, alphaQuality: 95, effort: 5 }).toFile(target)
-    converted += 1
   }
 }
 
