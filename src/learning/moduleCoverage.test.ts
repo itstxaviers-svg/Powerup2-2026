@@ -11,11 +11,11 @@ describe('module vocabulary eligibility', () => {
     for (const moduleId of moduleIds) expect(eligibleWordsForModule(unit1Vocabulary, moduleId)).toHaveLength(50)
   })
 
-  it('keeps empty future Units after populated Unit 4 incomplete with a zero eligible denominator', () => {
+  it('derives coverage denominators for every later production Unit', () => {
     const progress = createProgress(1)
     for (const unit of units.slice(4)) {
       for (const moduleId of moduleIds) {
-        expect(coverageForModule(unit, moduleId, progress.units[unit.id].modules[moduleId])).toEqual({ trained: 0, total: 0, complete: false })
+        expect(coverageForModule(unit, moduleId, progress.units[unit.id].modules[moduleId])).toEqual({ trained: 0, total: unit.words.length, complete: false })
       }
     }
   })

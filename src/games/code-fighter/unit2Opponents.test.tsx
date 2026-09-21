@@ -53,7 +53,7 @@ describe('Unit-aware Code Fighter opponents', () => {
     expect(unit3).not.toContain('Chronofang')
 
     const unit4 = renderSelection(3)
-    expect(unit4).toContain('Unit 4 vocabulary is ready')
+    expect(unit4).toContain('This Unit’s vocabulary is ready')
     expect(unit4).toContain('Opponent pending')
     expect(unit4).not.toContain('Rival Kael')
     expect(unit4).not.toContain('Corrupted Construct')

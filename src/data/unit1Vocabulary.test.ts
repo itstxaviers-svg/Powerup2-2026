@@ -20,7 +20,7 @@ const expectedTargetsByPart: Record<VocabularySourcePart, string[]> = {
 }
 
 describe('Unit 1 production vocabulary', () => {
-  it('preserves all five source parts and keeps Units 4–9 empty', () => {
+  it('preserves all five source parts alongside the later production Units', () => {
     expect(unit1Vocabulary).toHaveLength(50)
     expect([1, 2, 3, 4, 5].map((part) => unit1Vocabulary.filter((word) => word.sourcePart === part).length)).toEqual([11, 11, 9, 13, 6])
     ;([1, 2, 3, 4, 5] as VocabularySourcePart[]).forEach((part) => {
@@ -39,7 +39,7 @@ describe('Unit 1 production vocabulary', () => {
       expect(word.sourceTitle).toBe(source.title)
       expect(word.sourcePage).toBe(source.page)
     })
-    expect(units.slice(4).every((unit) => unit.words.length === 0)).toBe(true)
+    expect(units.map((unit) => unit.words.length)).toEqual([50, 44, 40, 33, 33, 24, 37, 48, 47])
   })
 
   it('contains complete, unique production records with stable local production audio', () => {

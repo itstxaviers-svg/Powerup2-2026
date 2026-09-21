@@ -18,6 +18,8 @@ export type UnitWord = {
   pictureEligible?: boolean
   example?: string
   contextForm?: string
+  baseForm?: string
+  allowDuplicateTarget?: boolean
   acceptedForms?: string[]
   fixedPhrase?: boolean
   distractors?: string[]

@@ -101,7 +101,7 @@ describe('vocabulary Part selection', () => {
     fighterKinds.forEach((kind) => expect(pool.filter((word) => supportsFighterChallenge(word, kind))).toHaveLength(30))
   })
 
-  it('does not change empty future Units', () => {
-    expect(units.slice(4).every((unit) => unit.words.length === 0)).toBe(true)
+  it('exposes the supplied Parts for Units 5–9', () => {
+    expect(units.slice(4).map((unit) => availableVocabularyParts(unit.words))).toEqual([[1, 2, 3], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
   })
 })

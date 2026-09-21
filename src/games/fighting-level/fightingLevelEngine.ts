@@ -19,10 +19,10 @@ function stableShuffle<T>(values: readonly T[], seed: number, identity: (value: 
 }
 
 export function cumulativeFightingPool(allUnits: readonly UnitData[], milestoneId: FightingMilestoneId): FightingVocabularyRecord[] {
-  const endUnit = fightingMilestones[milestoneId].endUnit
+  const { startUnit, endUnit } = fightingMilestones[milestoneId]
   const seen = new Set<string>()
   return allUnits
-    .filter((unit) => unit.number <= endUnit)
+    .filter((unit) => unit.number >= startUnit && unit.number <= endUnit)
     .flatMap((unit) => unit.words.map((word) => ({ unitId: unit.id, unitNumber: unit.number, word })))
     .filter((record) => {
       if (!record.word.id || !record.word.word.trim() || seen.has(record.word.id)) return false
@@ -31,12 +31,32 @@ export function cumulativeFightingPool(allUnits: readonly UnitData[], milestoneI
     })
 }
 
+export const normalizeFightingCanonicalAnswer = (value: string) => value
+  .normalize('NFKC')
+  .toLocaleLowerCase()
+  .replace(/[’]/gu, "'")
+  .replace(/\s+/gu, ' ')
+  .trim()
+  .replace(/[.!?]+$/gu, '')
+
+export function uniqueCanonicalFightingPool(allUnits: readonly UnitData[], milestoneId: FightingMilestoneId): FightingVocabularyRecord[] {
+  const pool = cumulativeFightingPool(allUnits, milestoneId)
+  if (fightingMilestones[milestoneId].battleCount === 1) return pool
+  const seenAnswers = new Set<string>()
+  return pool.filter((record) => {
+    const answer = normalizeFightingCanonicalAnswer(record.word.word)
+    if (!answer || seenAnswers.has(answer)) return false
+    seenAnswers.add(answer)
+    return true
+  })
+}
+
 export function fightingMilestoneDataStatus(allUnits: readonly UnitData[], milestoneId: FightingMilestoneId) {
-  const endUnit = fightingMilestones[milestoneId].endUnit
-  const requiredUnits = allUnits.filter((unit) => unit.number <= endUnit)
+  const { startUnit, endUnit } = fightingMilestones[milestoneId]
+  const requiredUnits = allUnits.filter((unit) => unit.number >= startUnit && unit.number <= endUnit)
   const missingUnitNumbers = requiredUnits.filter((unit) => unit.words.length === 0).map((unit) => unit.number)
-  const eligibleCount = cumulativeFightingPool(allUnits, milestoneId).length
-  return { eligibleCount, missingUnitNumbers, productionReady: requiredUnits.length === endUnit && missingUnitNumbers.length === 0 && eligibleCount > 0 }
+  const eligibleCount = uniqueCanonicalFightingPool(allUnits, milestoneId).length
+  return { eligibleCount, missingUnitNumbers, productionReady: requiredUnits.length === endUnit - startUnit + 1 && missingUnitNumbers.length === 0 && eligibleCount > 0 }
 }
 
 export const fightingBattleSize = (eligibleCount: number) => Math.ceil(eligibleCount / 3)
@@ -58,7 +78,7 @@ function balancedRoster(pool: readonly FightingVocabularyRecord[], count: number
 
 export function createFightingBattleRosters(allUnits: readonly UnitData[], milestoneId: FightingMilestoneId, seed: number): string[][] {
   const config = fightingMilestones[milestoneId]
-  const pool = cumulativeFightingPool(allUnits, milestoneId)
+  const pool = uniqueCanonicalFightingPool(allUnits, milestoneId)
   const target = fightingBattleSize(pool.length)
   const first = balancedRoster(pool, target, seed)
   if (config.battleCount === 1) return [first.map((record) => record.word.id)]
@@ -109,9 +129,19 @@ export function markFightingEnemyIntroSeen(progress: FightingLevelProgress, enem
 export function prepareFightingLevelProgress(saved: FightingLevelProgress | undefined, allUnits: readonly UnitData[], milestoneId: FightingMilestoneId, seed: number): FightingLevelProgress {
   const normalized = normalizeFightingLevelProgress(milestoneId, saved)
   const config = fightingMilestones[milestoneId]
+  const validPool = uniqueCanonicalFightingPool(allUnits, milestoneId)
+  const validById = new Map(validPool.map((record) => [record.word.id, record]))
+  const expectedSize = fightingBattleSize(validPool.length)
+  const flattened = normalized.battleRosterIds.flat()
+  const canonicalAnswers = flattened.flatMap((id) => {
+    const record = validById.get(id)
+    return record ? [normalizeFightingCanonicalAnswer(record.word.word)] : []
+  })
   const rostersReady = normalized.battleRosterIds.length === config.battleCount
-    && normalized.battleRosterIds.every((roster) => roster.length > 0)
-    && new Set(normalized.battleRosterIds.flat()).size === normalized.battleRosterIds.flat().length
+    && normalized.battleRosterIds.every((roster) => roster.length === expectedSize)
+    && flattened.every((id) => validById.has(id))
+    && new Set(flattened).size === flattened.length
+    && new Set(canonicalAnswers).size === flattened.length
   if (rostersReady) return normalized
   const battleRosterIds = createFightingBattleRosters(allUnits, milestoneId, seed)
   return { ...normalized, battleRosterIds, exclusionWordIds: [...(battleRosterIds[0] ?? [])] }

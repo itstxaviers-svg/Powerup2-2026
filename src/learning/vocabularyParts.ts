@@ -25,6 +25,11 @@ export const vocabularyPartLabels: Record<string, Partial<Record<VocabularySourc
     2: 'Part 2 · The family at home. Place to live',
     3: 'Part 3 · The family at home. Machines in our home',
   },
+  'unit-05': { 1: 'Part 1 · Animal world. Vocabulary', 2: 'Part 2 · The animal kingdom', 3: 'Part 3 · Literature' },
+  'unit-06': { 1: 'Part 1 · Our weather. Vocabulary 1, 2', 2: "Part 2 · What's the weather like today?", 3: 'Part 3 · Literature' },
+  'unit-07': { 1: "Part 1 · Let's cook. Vocabulary 1", 2: "Part 2 · Let's cook. Vocabulary 2", 3: 'Part 3 · Plants are delicious', 4: 'Part 4 · Literature' },
+  'unit-08': { 1: 'Part 1 · Around town. Vocabulary 1', 2: 'Part 2 · Around town. Vocabulary 2', 3: 'Part 3 · Road safety', 4: 'Part 4 · Literature' },
+  'unit-09': { 1: 'Part 1 · A big change. Vocabulary 1', 2: 'Part 2 · A big change. Vocabulary 2', 3: 'Part 3 · The wonder of the world', 4: 'Part 4 · Literature' },
 }
 
 export function availableVocabularyParts(words: UnitWord[]): VocabularySourcePart[] {

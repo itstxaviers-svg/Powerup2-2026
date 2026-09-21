@@ -1,26 +1,38 @@
 import { statSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { fightingPictureClueAssets, fightingPictureClueWordIds } from '../src/games/fighting-level/fightingPictureClueAssets'
+import { fightingPictureClueAssets, fightingPictureClueWordIds, unit9PictureCandidateFiles } from '../src/games/fighting-level/fightingPictureClueAssets'
 
 const assetRoot = '../Assets/05-games/code-fighter/POWER_UP_2_FIGHTING_LEVEL_VOCABULARY_CLUES_UNITS_1-2'
 
 describe('Fighting Level vocabulary picture files', () => {
-  it('resolves exactly 17 Unit 1, 13 Unit 2, and 13 Unit 3 approved PNGs through Vite', () => {
+  it('keeps the original picture counts and registers the approved later-Unit images', () => {
     const unit1Ids = fightingPictureClueWordIds.filter((id) => id.startsWith('u1-'))
     const unit2Ids = fightingPictureClueWordIds.filter((id) => id.startsWith('u2-'))
     const unit3Ids = fightingPictureClueWordIds.filter((id) => id.startsWith('u3-'))
     expect(unit1Ids).toHaveLength(17)
     expect(unit2Ids).toHaveLength(13)
     expect(unit3Ids).toHaveLength(13)
-    expect(fightingPictureClueWordIds).toHaveLength(43)
-    expect(new Set(fightingPictureClueWordIds).size).toBe(43)
+    expect(fightingPictureClueWordIds.filter((id) => id.startsWith('u4-'))).toHaveLength(17)
+    expect(fightingPictureClueWordIds.filter((id) => id.startsWith('u5-'))).toHaveLength(19)
+    expect(fightingPictureClueWordIds.filter((id) => id.startsWith('u6-'))).toHaveLength(13)
+    expect(fightingPictureClueWordIds.filter((id) => id.startsWith('u7-'))).toHaveLength(19)
+    expect(fightingPictureClueWordIds.filter((id) => id.startsWith('u8-'))).toHaveLength(22)
+    expect(fightingPictureClueWordIds.filter((id) => id.startsWith('u9-'))).toHaveLength(0)
+    expect(fightingPictureClueWordIds).toHaveLength(133)
+    expect(new Set(fightingPictureClueWordIds).size).toBe(133)
 
-    for (const id of fightingPictureClueWordIds) {
+    for (const id of fightingPictureClueWordIds.filter((id) => /^u[1-3]-/.test(id))) {
       const unit = id.startsWith('u1-') ? 'unit-01' : id.startsWith('u2-') ? 'unit-02' : 'unit-03'
       const filename = `${id}.png`
       expect(statSync(new URL(`${assetRoot}/${unit}/${filename}`, import.meta.url)).size).toBeGreaterThan(0)
       expect(fightingPictureClueAssets[id]).toContain(filename)
     }
+  })
+
+  it('prepares all 21 Unit 9 picture filenames without activating missing files', () => {
+    expect(Object.keys(unit9PictureCandidateFiles)).toHaveLength(21)
+    expect(Object.values(unit9PictureCandidateFiles).every((filename) => /^unit09-[a-z0-9-]+\.png$/.test(filename))).toBe(true)
+    expect(Object.keys(unit9PictureCandidateFiles).every((id) => fightingPictureClueAssets[id] === undefined)).toBe(true)
   })
 
   it('keeps the ambiguous project-protection phrase out of the registry', () => {

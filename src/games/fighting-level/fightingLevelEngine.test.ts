@@ -65,7 +65,7 @@ describe('Fighting Level cumulative rosters', () => {
     expect(fightingBattleSize(19)).toBe(7)
     expect(createFightingBattleRosters(units, 'after-unit-3', 14)).toHaveLength(1)
     expect(createFightingBattleRosters(units, 'after-unit-3', 14)[0]).toHaveLength(6)
-    expect(createFightingBattleRosters(units, 'after-unit-7', 14)[0]).toHaveLength(14)
+    expect(createFightingBattleRosters(units, 'after-unit-7', 14)[0]).toHaveLength(8)
     expect(createFightingBattleRosters(units, 'after-unit-9', 14)[0]).toHaveLength(18)
   })
 
