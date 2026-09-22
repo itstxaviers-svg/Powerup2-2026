@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 
 import { useVocabularyAudio } from '../../audio/useVocabularyAudio'
 import { assets } from '../../data/assets'
 import type { FightingLevelProgress, FightingMilestoneId, UnitData, UnitWord } from '../../types/game'
+import { CorrectionPractice } from '../CorrectionPractice'
 import { useEnterAction } from '../useEnterAction'
 import { createCodeFighterAudioGate, type CodeFighterAudioGate } from '../code-fighter/codeFighterAudioGate'
 import { createAnswerCountdown } from '../code-fighter/codeFighterCountdown'
@@ -12,27 +13,29 @@ import { buildFightingTasks, fallbackFightingTaskToAudio, fightingMilestoneDataS
 
 const FIGHTING_TICK_MS = 100
 
-export function FightingLevel({ milestoneId, allUnits, progress, reducedMotion = false, demoMode = false, onProgressChange, onBack }: {
+export function FightingLevel({ milestoneId, allUnits, progress, reducedMotion = false, demoMode = false, onProgressChange, onWordMistake, onBack }: {
   milestoneId: FightingMilestoneId
   allUnits: readonly UnitData[]
   progress: FightingLevelProgress
   reducedMotion?: boolean
   demoMode?: boolean
   onProgressChange: (progress: FightingLevelProgress) => void
+  onWordMistake?: (unitId: string, wordId: string) => void
   onBack: () => void
 }) {
   const status = fightingMilestoneDataStatus(allUnits, milestoneId)
   const roster = progress.battleRosterIds[progress.battleIndex] ?? []
   if ((!demoMode && !status.productionReady) || roster.length === 0) return <FightingLevelUnavailable milestoneId={milestoneId} status={status} onBack={onBack} />
-  return <FightingBattle key={milestoneId} milestoneId={milestoneId} allUnits={allUnits} initialProgress={progress} reducedMotion={reducedMotion} onProgressChange={onProgressChange} onBack={onBack} />
+  return <FightingBattle key={milestoneId} milestoneId={milestoneId} allUnits={allUnits} initialProgress={progress} reducedMotion={reducedMotion} onProgressChange={onProgressChange} onWordMistake={onWordMistake} onBack={onBack} />
 }
 
-function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion, onProgressChange, onBack }: {
+function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion, onProgressChange, onWordMistake, onBack }: {
   milestoneId: FightingMilestoneId
   allUnits: readonly UnitData[]
   initialProgress: FightingLevelProgress
   reducedMotion: boolean
   onProgressChange: (progress: FightingLevelProgress) => void
+  onWordMistake?: (unitId: string, wordId: string) => void
   onBack: () => void
 }) {
   const config = fightingMilestones[milestoneId]
@@ -67,7 +70,10 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
     setCorrectCount(nextCorrect)
     setFeedback({ correct, timedOut })
     setEnemyAction(correct ? 'hit' : taskIndex >= Math.floor(tasks.length * .7) ? 'heavy-attack' : 'quick-attack')
-    if (!correct) setImpactCount((count) => count + 1)
+    if (!correct) {
+      setImpactCount((count) => count + 1)
+      if (task) onWordMistake?.(task.unitId, task.wordId)
+    }
   }
   resolveRef.current = resolve
 
@@ -169,7 +175,9 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
         <p className="eyebrow">{task.mode === 'audio' ? 'Audio recall' : 'Picture recall'}</p>
         <h1>{task.mode === 'audio' ? 'Listen, then type the English answer.' : 'Name what you see in English.'}</h1>
         <FightingTaskPrompt key={`${task.wordId}-${taskIndex}-${task.mode}`} task={task} word={word} answer={answer} answerReady={answerReady} disabled={Boolean(feedback)} onAnswerChange={setAnswer} onPromptReady={() => setAnswerReady(true)} onSubmit={() => resolve(isAcceptedRepairAnswer(word, answer))} />
-        {feedback && <FightingFeedback correct={feedback.correct} timedOut={feedback.timedOut} word={word.word} isFinal={taskIndex + 1 === tasks.length} onContinue={continueBattle} />}
+        {feedback && (feedback.correct
+          ? <FightingFeedback correct timedOut={feedback.timedOut} word={word.word} isFinal={taskIndex + 1 === tasks.length} onContinue={continueBattle} />
+          : <CorrectionPractice answer={word.word} acceptedAnswers={[word.word, ...(word.acceptedForms ?? [])]} onContinue={continueBattle} continueLabel={taskIndex + 1 === tasks.length ? 'See result →' : 'Next task →'} />)}
       </section>
     </section>
   </main>

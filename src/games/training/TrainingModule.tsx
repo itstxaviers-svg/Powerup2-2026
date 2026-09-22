@@ -4,9 +4,10 @@ import { assets } from '../../data/assets'
 import { coverageForTrainedWordIds, eligibleWordsForModule } from '../../learning/moduleCoverage'
 import { chooseQuestionVariant, recordQuestionVariant, type QuestionVariant } from '../../learning/questionVariation'
 import { eligibleWords, chooseScheduledWord } from '../../learning/taskScheduler'
-import { recordReviewSuccess, recordSpellingMistake } from '../../learning/weakWordEngine'
+import { recordRecognitionMistake, recordReviewSuccess, recordSpellingMistake } from '../../learning/weakWordEngine'
 import type { ModuleAttempt, QuestionDifficulty, QuestionVariantState, TrainingModuleId, UnitData, UnitWord, WeakWordRecord } from '../../types/game'
 import { isEnterActionKey, useEnterAction } from '../useEnterAction'
+import { CorrectionPractice } from '../CorrectionPractice'
 import { ManualGameIntro } from '../intro/ManualGameIntro'
 import { trainingIntroConfigs } from '../intro/trainingIntroConfig'
 import { assembledAudioAnswer, assemblySlotGroups, shuffledAudioLetters } from './audioCodePresentation'
@@ -143,11 +144,11 @@ export function TrainingModule({
   const submit = (correct: boolean) => {
     if (feedback) return
     let weakWords = session.weakWords
-    if (isSpellingTask(task)) {
-      weakWords = correct
-        ? task.isReview ? recordReviewSuccess(weakWords, unit.id, task.word.id, task.reviewIndex) : weakWords
-        : recordSpellingMistake(weakWords, unit.id, task.word.id, task.reviewIndex)
-    }
+    weakWords = correct
+      ? task.isReview ? recordReviewSuccess(weakWords, unit.id, task.word.id, task.reviewIndex) : weakWords
+      : isSpellingTask(task)
+        ? recordSpellingMistake(weakWords, unit.id, task.word.id, task.reviewIndex)
+        : recordRecognitionMistake(weakWords, unit.id, task.word.id, task.reviewIndex)
     const correctCount = session.correct + Number(correct)
     const sessionCompleted = session.index + 1 >= TRAINING_TASKS_PER_MODULE
     const trainedWordIds = session.trainedWordIds.includes(task.word.id) ? session.trainedWordIds : [...session.trainedWordIds, task.word.id]
@@ -174,7 +175,9 @@ export function TrainingModule({
       <div className="training-panel">
         {session.task.isReview && <span className="review-chip">Lightworld review</span>}
         <TaskPrompt task={task} words={words} onSubmit={submit} />
-        {feedback && <Feedback correct={feedback.correct} word={task.word.word} onContinue={continueTraining} isFinal={session.index + 1 >= TRAINING_TASKS_PER_MODULE} errorHunt={task.kind === 'error-hunt'} revealCorrectAnswer={task.kind === 'audio-code'} />}
+        {feedback && (feedback.correct
+          ? <Feedback correct word={task.word.word} onContinue={continueTraining} isFinal={session.index + 1 >= TRAINING_TASKS_PER_MODULE} errorHunt={task.kind === 'error-hunt'} revealCorrectAnswer={task.kind === 'audio-code'} />
+          : <CorrectionPractice answer={task.word.word} acceptedAnswers={[task.word.word, ...(task.word.acceptedForms ?? [])]} onContinue={continueTraining} continueLabel={session.index + 1 >= TRAINING_TASKS_PER_MODULE ? 'See results →' : 'Continue →'} />)}
       </div>
     </section>
   </main>

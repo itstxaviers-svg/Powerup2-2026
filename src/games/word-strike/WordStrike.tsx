@@ -5,6 +5,7 @@ import { coverageForTrainedWordIds } from '../../learning/moduleCoverage'
 import { recordQuestionVariant } from '../../learning/questionVariation'
 import { recordRecognitionMistake, recordReviewSuccess } from '../../learning/weakWordEngine'
 import type { ModuleAttempt, QuestionVariantState, UnitData, UnitWord, WeakWordRecord } from '../../types/game'
+import { CorrectionPractice } from '../CorrectionPractice'
 import { useEnterAction } from '../useEnterAction'
 import { createAudioStrikeReplayLifecycle, type AudioStrikeReplayLifecycle } from './audioStrikeReplay'
 import { WordStrikeIntro } from './WordStrikeIntro'
@@ -102,11 +103,12 @@ export function WordStrike({
       ? session.variantStateByWordId
       : recordQuestionVariant(session.variantStateByWordId, round.word.id, round.variantId, round.variantDifficulty, correct)
     const variantAttempt = session.roundVariantCommitted ? {} : { variantId: round.variantId, variantDifficulty: round.variantDifficulty }
+    const isLastRound = session.roundIndex + 1 >= WORD_STRIKE_CONFIG.roundsPerSession
     playWordStrikeSound('fire')
     if (!correct) {
       const weakWords = recordRecognitionMistake(session.weakWords, unit.id, round.word.id, round.reviewIndex)
       const next = { ...session, shots, combo: 0, weakWords, trainedWordIds, variantStateByWordId, roundVariantCommitted: true }
-      onAttempt({ unitId: unit.id, moduleId: 'word-strike', wordId: round.word.id, correct: false, weakWords, accuracy: session.correct / shots, sessionCompleted: false, advanceReviewClock: false, ...variantAttempt })
+      onAttempt({ unitId: unit.id, moduleId: 'word-strike', wordId: round.word.id, correct: false, weakWords, accuracy: session.correct / shots, sessionCompleted: isLastRound, advanceReviewClock: true, ...variantAttempt })
       setSession(next)
       setShotState({ targetId, targetLeft: target.left, targetTop: target.top, correct: false })
       setNotice('Missed target — the correct word is still in the range.')
@@ -118,7 +120,6 @@ export function WordStrike({
     const strike = scoreForStrike(combo, Date.now() - session.startedAt)
     const correctCount = session.correct + 1
     const weakWords = round.isReview ? recordReviewSuccess(session.weakWords, unit.id, round.word.id, round.reviewIndex) : session.weakWords
-    const isLastRound = session.roundIndex + 1 >= WORD_STRIKE_CONFIG.roundsPerSession
     const nextAccuracy = correctCount / shots
     const next = { ...session, shots, correct: correctCount, combo, bestCombo: Math.max(session.bestCombo, combo), score: session.score + strike.points, weakWords, trainedWordIds, variantStateByWordId, roundVariantCommitted: true }
     onAttempt({ unitId: unit.id, moduleId: 'word-strike', wordId: round.word.id, correct: true, weakWords, accuracy: nextAccuracy, sessionCompleted: isLastRound, advanceReviewClock: true, ...variantAttempt })
@@ -129,7 +130,7 @@ export function WordStrike({
   }
 
   const nextRound = () => {
-    if (!shotState?.correct) { setShotState(null); setNotice(null); return }
+    if (!shotState) return
     const isLastRound = session.roundIndex + 1 >= WORD_STRIKE_CONFIG.roundsPerSession
     if (isLastRound) { playWordStrikeSound('levelComplete'); setFinished(true); return }
     const nextRoundIndex = session.roundIndex + 1
@@ -154,7 +155,9 @@ export function WordStrike({
         {shotState && <StrikeShotEffect shot={shotState} />}
       </div>
       <img className={`strike-fps-cannon ${shotState ? 'firing' : ''}`} src={assets.wordStrikeFpsCannon} alt="" aria-hidden="true" />
-      {shotState && <StrikeFeedback correct={shotState.correct} notice={notice} onContinue={nextRound} />}
+      {shotState && (shotState.correct
+        ? <StrikeFeedback correct notice={notice} onContinue={nextRound} />
+        : <CorrectionPractice className="strike-correction" answer={round.word.word} acceptedAnswers={[round.word.word, ...(round.word.acceptedForms ?? [])]} onContinue={nextRound} continueLabel={session.roundIndex + 1 >= WORD_STRIKE_CONFIG.roundsPerSession ? 'See results →' : 'Next target →'} />)}
     </section>
   </main>
 }

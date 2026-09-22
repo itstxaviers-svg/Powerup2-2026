@@ -24,6 +24,7 @@ import { acknowledgeEvolutionUnlock, pendingEvolutionUnlock } from '../progress/
 import { applyModuleAttempt, chestTierForUnit, claimUnitReward, completedModuleCount, completedUnitCount, isModuleComplete, isUnitComplete, isUnitUnlocked } from '../progress/progressionEngine'
 import { filterVocabularyByParts, normalizeVocabularyPartSelection, vocabularyScopeLabel, withVocabularyPartSelection } from '../learning/vocabularyParts'
 import { coverageForModule } from '../learning/moduleCoverage'
+import { recordSpellingMistake } from '../learning/weakWordEngine'
 import type { FightingLevelProgress, FightingMilestoneId, ModuleAttempt, ModuleId, PlayerProfile, PlayerProgress, SavedGame, TrainingModuleId, UnitData, VocabularySourcePart } from '../types/game'
 
 type Screen = { name: MainSection } | { name: 'unit'; unitId: string } | { name: 'training'; unitId: string; moduleId: TrainingModuleId } | { name: 'word-strike'; unitId: string } | { name: 'code-fighter'; unitId: string } | { name: 'fighting-level'; milestoneId: FightingMilestoneId }
@@ -219,6 +220,16 @@ export function App() {
     })
   }
 
+  const saveFightingWordMistake = (unitId: string, wordId: string) => {
+    setGame((current) => {
+      if (!current) return current
+      const weakWords = recordSpellingMistake(current.progress.weakWords, unitId, wordId, current.progress.reviewClock)
+      const next = { ...current, progress: { ...current.progress, weakWords, reviewClock: current.progress.reviewClock + 1 } }
+      localProgressRepository.save(next)
+      return next
+    })
+  }
+
   if (screen.name === 'progress') return present(<ProgressView profile={game.profile} progress={game.progress} onNavigate={navigate} />)
   if (screen.name === 'rewards') return present(<RewardsView progress={game.progress} onNavigate={navigate} />)
   if (screen.name === 'account') return present(<AccountView profile={game.profile} progress={game.progress} onNavigate={navigate} />)
@@ -264,7 +275,7 @@ export function App() {
   if (screen.name === 'fighting-level') {
     const config = fightingMilestones[screen.milestoneId]
     const unitId = `unit-${String(config.endUnit).padStart(2, '0')}`
-    return present(<FightingLevel milestoneId={screen.milestoneId} allUnits={units} progress={game.progress.fightingLevels[screen.milestoneId]} reducedMotion={game.settings.reducedMotion} demoMode={demoMode} onProgressChange={saveFightingLevelProgress} onBack={() => setScreen({ name: 'unit', unitId })} />)
+    return present(<FightingLevel milestoneId={screen.milestoneId} allUnits={units} progress={game.progress.fightingLevels[screen.milestoneId]} reducedMotion={game.settings.reducedMotion} demoMode={demoMode} onProgressChange={saveFightingLevelProgress} onWordMistake={saveFightingWordMistake} onBack={() => setScreen({ name: 'unit', unitId })} />)
   }
 
   return present(<World profile={game.profile} progress={game.progress} revealingUnitId={revealingUnitId} onOpenUnit={(unitId) => setScreen({ name: 'unit', unitId })} onNavigate={navigate} onCelebrateWorld={celebrateWorld} />)

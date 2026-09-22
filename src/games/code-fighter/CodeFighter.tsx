@@ -5,6 +5,7 @@ import { coverageForTrainedWordIds } from '../../learning/moduleCoverage'
 import { recordQuestionVariant } from '../../learning/questionVariation'
 import { recordRecognitionMistake, recordReviewSuccess, recordSpellingMistake } from '../../learning/weakWordEngine'
 import type { ModuleAttempt, QuestionVariantState, UnitData, UnitWord, WeakWordRecord } from '../../types/game'
+import { CorrectionPractice } from '../CorrectionPractice'
 import { useEnterAction } from '../useEnterAction'
 import { createCodeFighterAudioGate, type CodeFighterAudioGate } from './codeFighterAudioGate'
 import { createAnswerCountdown } from './codeFighterCountdown'
@@ -135,7 +136,7 @@ function FighterBattle({ unit, words, scopeLabel, avatarId, playerName, initialW
       },
       onComplete: () => setBattle((current) => ({
         ...current,
-        phase: current.pendingOutcome === 'victory' ? 'victory' : current.pendingOutcome === 'defeat' ? 'defeat' : 'resolved',
+        phase: current.answerCorrect === false ? 'resolved' : current.pendingOutcome === 'victory' ? 'victory' : current.pendingOutcome === 'defeat' ? 'defeat' : 'resolved',
         playerState: current.pendingOutcome === 'continue' ? 'idle' : current.playerState,
         opponentState: current.pendingOutcome === 'continue' ? 'idle' : current.opponentState,
       })),
@@ -193,6 +194,10 @@ function FighterBattle({ unit, words, scopeLabel, avatarId, playerName, initialW
   const continueBattle = () => {
     if (battle.phase !== 'resolved') return
     submissionLockedRef.current = false
+    if (battle.answerCorrect === false && battle.pendingOutcome === 'defeat') {
+      setBattle({ ...battle, phase: 'defeat' })
+      return
+    }
     if (battle.answerCorrect && battle.stepIndex + 1 < battle.challenge.steps.length) {
       const nextStepIndex = battle.stepIndex + 1
       const nextStep = battle.challenge.steps[nextStepIndex]
@@ -243,7 +248,9 @@ function FighterBattle({ unit, words, scopeLabel, avatarId, playerName, initialW
           {battle.phase === 'answering' && step.mode === 'choice' && <div className="fighter-options">{step.choices?.map((choice) => <button type="button" key={choice} disabled={!battle.answerReady} onClick={() => submit(choice)}>{choice}</button>)}</div>}
           {battle.phase === 'answering' && step.mode === 'text' && <form className="fighter-answer" onSubmit={(event: FormEvent) => { event.preventDefault(); if (answer.trim() && battle.answerReady) submit(answer) }}><label><span className="sr-only">Your answer</span><input autoFocus={battle.answerReady} value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={!battle.answerReady} autoComplete="off" spellCheck={false} placeholder={battle.answerReady ? 'Type your answer' : 'Audio is loading…'} /></label><button className="primary-button compact" type="submit" disabled={!answer.trim() || !battle.answerReady}>Power move</button></form>}
           {battle.phase === 'choreography' && <p className="fighter-move-status">{battle.feedback.startsWith('Time’s up') ? 'Time’s up!' : 'Move in progress…'}</p>}
-          {battle.phase === 'resolved' && <FighterFeedback correct={Boolean(battle.answerCorrect)} message={battle.feedback} label={battle.answerCorrect && battle.stepIndex + 1 < battle.challenge.steps.length ? 'Next combo step →' : 'Next exchange →'} onContinue={continueBattle} />}
+          {battle.phase === 'resolved' && (battle.answerCorrect
+            ? <FighterFeedback correct message={battle.feedback} label={battle.stepIndex + 1 < battle.challenge.steps.length ? 'Next combo step →' : 'Next exchange →'} onContinue={continueBattle} />
+            : <CorrectionPractice answer={step.expected} acceptedAnswers={step.expected === battle.challenge.word.word ? [step.expected, ...(battle.challenge.word.acceptedForms ?? [])] : [step.expected]} onContinue={continueBattle} continueLabel={battle.pendingOutcome === 'defeat' ? 'See result →' : 'Next exchange →'} />)}
         </>}
       </section>
     </section>
