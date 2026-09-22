@@ -1,4 +1,4 @@
-const CACHE_NAME = 'power-up-2-runtime-v2'
+const CACHE_NAME = 'power-up-2-runtime-v3'
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(
@@ -19,7 +19,7 @@ self.addEventListener('fetch', (event) => {
   }
   // Recordings keep stable URLs, so always check the network first. This
   // prevents an old cached MP3 from surviving after a corrected deployment.
-  if (url.pathname.startsWith('/assets/audio/')) {
+  if (url.pathname.includes('/assets/audio/')) {
     event.respondWith(fetch(request).then((response) => {
       if (response.status === 200) {
         const copy = response.clone()

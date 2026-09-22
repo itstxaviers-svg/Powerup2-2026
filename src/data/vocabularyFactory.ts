@@ -1,4 +1,5 @@
 import type { UnitWord, VocabularySourcePart } from '../types/game'
+import { vocabularyAudioPath } from '../audio/audioAssetPath'
 
 export type VocabularySeed = {
   word: string
@@ -14,19 +15,22 @@ export type VocabularySeed = {
 const slug = (value: string) => value.toLocaleLowerCase().replace(/['’.]/gu, '').replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '')
 
 export function vocabularyFromPart(unitNumber: number, sourcePart: VocabularySourcePart, sourceTitle: string, seeds: readonly VocabularySeed[]): UnitWord[] {
-  return seeds.map((seed) => ({
-    id: seed.id ?? `u${unitNumber}-${slug(seed.word)}`,
-    word: seed.word,
-    translation: seed.translation,
-    definition: seed.definition,
-    example: `Complete the phrase: ____.`,
-    sourcePart,
-    sourceTitle,
-    audio: `/assets/audio/unit-${String(unitNumber).padStart(2, '0')}/${seed.id ?? `u${unitNumber}-${slug(seed.word)}`}.mp3`,
-    fixedPhrase: /[\s?.]/u.test(seed.word),
-    baseForm: seed.baseForm,
-    allowDuplicateTarget: seed.allowDuplicateTarget,
-    pictureEligible: Boolean(seed.pictureEligible),
-    acceptedForms: seed.acceptedForms,
-  }))
+  return seeds.map((seed) => {
+    const id = seed.id ?? `u${unitNumber}-${slug(seed.word)}`
+    return {
+      id,
+      word: seed.word,
+      translation: seed.translation,
+      definition: seed.definition,
+      example: `Complete the phrase: ____.`,
+      sourcePart,
+      sourceTitle,
+      audio: vocabularyAudioPath(unitNumber, id),
+      fixedPhrase: /[\s?.]/u.test(seed.word),
+      baseForm: seed.baseForm,
+      allowDuplicateTarget: seed.allowDuplicateTarget,
+      pictureEligible: Boolean(seed.pictureEligible),
+      acceptedForms: seed.acceptedForms,
+    }
+  })
 }

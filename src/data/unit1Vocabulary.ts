@@ -1,4 +1,5 @@
 import type { UnitWord } from '../types/game'
+import { vocabularyAudioPath } from '../audio/audioAssetPath'
 
 export type VocabularySourcePart = 1 | 2 | 3 | 4 | 5
 
@@ -14,7 +15,7 @@ type PartWord = Omit<UnitWord, 'sourcePart' | 'sourceTitle' | 'sourcePage' | 'au
 
 const fromPart = (sourcePart: VocabularySourcePart, word: PartWord): UnitWord => {
   const source = unit1VocabularySources[sourcePart]
-  return { ...word, sourcePart, sourceTitle: source.title, sourcePage: source.page, audio: `/assets/audio/unit-01/${word.id}.mp3` }
+  return { ...word, sourcePart, sourceTitle: source.title, sourcePage: source.page, audio: vocabularyAudioPath(1, word.id) }
 }
 
 export const unit1Vocabulary: UnitWord[] = [
