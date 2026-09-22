@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { StudentAccess } from '../auth/StudentAccess'
 import { clearCloudSession, getCloudSession } from '../cloud/cloudSession'
-import { installCloudSync, queueAttempt } from '../cloud/syncQueue'
+import { flushCloudSync, installCloudSync, queueAttempt } from '../cloud/syncQueue'
 import { MainNav, AccountView, ProgressView, RewardsView, SettingsView, type MainSection } from './ProgressScreens'
 import { EvolutionRank } from '../components/avatars/AvatarEvolution'
 import { EvolutionUnlockOverlay } from '../components/avatars/EvolutionUnlockOverlay'
@@ -154,6 +154,15 @@ export function App() {
     setScreen({ name: 'world' })
   }
 
+  const signOut = () => {
+    void flushCloudSync()
+    clearCloudSession()
+    setStudentAccessReady(false)
+    setCompletionFlowUnitId(null)
+    setRevealingUnitId(null)
+    setScreen({ name: 'world' })
+  }
+
   const celebrateWorld = () => {
     setGame((current) => {
       if (!current || current.progress.worldCompletionCelebrated) return current
@@ -232,7 +241,7 @@ export function App() {
 
   if (screen.name === 'progress') return present(<ProgressView profile={game.profile} progress={game.progress} onNavigate={navigate} />)
   if (screen.name === 'rewards') return present(<RewardsView progress={game.progress} onNavigate={navigate} />)
-  if (screen.name === 'account') return present(<AccountView profile={game.profile} progress={game.progress} onNavigate={navigate} />)
+  if (screen.name === 'account') return present(<AccountView profile={game.profile} progress={game.progress} onSignOut={signOut} onNavigate={navigate} />)
   if (screen.name === 'settings') return present(<SettingsView settings={game.settings} onChange={changeSettings} onResetProgress={resetProgress} onResetProfile={resetProfile} onNavigate={navigate} />)
 
   if (screen.name === 'unit') {

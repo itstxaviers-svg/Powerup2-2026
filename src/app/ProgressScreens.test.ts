@@ -25,12 +25,14 @@ describe('Profile and Rewards presentation', () => {
     progress.units['unit-02'].completed = true
     const profile = { playerId: 'test', name: 'Sofy', group: 'X', avatarId: 5, avatarEvolutionStage: 1 as const, createdAt: 0 }
     const onNavigate = () => undefined
-    const profileMarkup = renderToStaticMarkup(AccountView({ profile, progress, onNavigate }))
+    const profileMarkup = renderToStaticMarkup(AccountView({ profile, progress, onSignOut: () => undefined, onNavigate }))
     const rewardsMarkup = renderToStaticMarkup(RewardsView({ progress, onNavigate }))
 
     expect(profileMarkup).toContain('Sofy')
     expect(profileMarkup).toContain('Explorer')
     expect(profileMarkup).toContain('Avatar 05')
+    expect(profileMarkup).toContain('Sign out')
+    expect(profileMarkup).toContain('Your saved progress will not be deleted.')
     expect(profileMarkup).not.toContain('X · Avatar 05')
     expect(profileMarkup).toContain('0 cities restored · Next evolution at 3')
     expect(rewardsMarkup).toContain('rewards-shell')
