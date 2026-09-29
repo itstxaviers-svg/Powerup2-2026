@@ -336,6 +336,32 @@ def _teacher_group(identity):
     return rows[0] if rows else None
 
 
+def _teacher_student_report(student_id, student_code):
+    # Keep each student's profile, snapshot and recent attempts in one YDB
+    # transaction. The dashboard used to make three separate round trips per
+    # student, which could exceed the Cloud Function timeout as a class grew.
+    result = _query("""
+        DECLARE $student_code AS Utf8; DECLARE $student_id AS Utf8;
+        SELECT student_code, student_id, display_name, group_id, group_display_name, join_code, avatar_id, pin_hash, created_at
+        FROM students WHERE student_code = $student_code;
+        SELECT payload FROM game_snapshots WHERE student_id = $student_id;
+        SELECT event_id, occurred_at, payload FROM attempt_events
+        WHERE student_id = $student_id ORDER BY occurred_at DESC LIMIT 80;
+    """, student_code=student_code, student_id=student_id)
+    student_rows = list(result[0].rows) if len(result) > 0 else []
+    if not student_rows:
+        return None
+    snapshot_rows = list(result[1].rows) if len(result) > 1 else []
+    attempt_rows = list(result[2].rows) if len(result) > 2 else []
+    game = json.loads(_value(snapshot_rows[0], "payload")) if snapshot_rows else None
+    recent = [{
+        "id": _value(row, "event_id"),
+        "occurredAt": _timestamp_iso(_value(row, "occurred_at")),
+        "payload": json.loads(_value(row, "payload")),
+    } for row in attempt_rows]
+    return {"profile": _profile(student_rows[0]), "game": game, "recentAttempts": recent}
+
+
 def _teacher_dashboard(event):
     identity = _authenticate(event, "teacher")
     if not identity:
@@ -350,16 +376,9 @@ def _teacher_dashboard(event):
     students = []
     for member in members:
         student_id = _value(member, "student_id")
-        student = _find_student(_value(member, "student_code"))
-        if not student:
-            continue
-        attempts = _rows(_query("""
-            DECLARE $student_id AS Utf8;
-            SELECT event_id, occurred_at, payload FROM attempt_events
-            WHERE student_id = $student_id ORDER BY occurred_at DESC LIMIT 80;
-        """, student_id=student_id))
-        recent = [{"id": _value(row, "event_id"), "occurredAt": _timestamp_iso(_value(row, "occurred_at")), "payload": json.loads(_value(row, "payload"))} for row in attempts]
-        students.append({"profile": _profile(student), "game": _game_for_student(student_id), "recentAttempts": recent})
+        report = _teacher_student_report(student_id, _value(member, "student_code"))
+        if report:
+            students.append(report)
     group_payload = {"joinCode": identity.get("joinCode", ""), "displayName": _value(group, "display_name")}
     return _response(200, {"group": group_payload, "students": students})
 
