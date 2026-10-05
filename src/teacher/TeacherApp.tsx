@@ -20,7 +20,34 @@ const teacherUnits = [
 ] as const
 
 const DAY_MS = 86_400_000
+const TEACHER_DASHBOARD_CACHE_PREFIX = 'power-up-2-teacher-dashboard-v1:'
 const wordDetails = new Map(units.flatMap((unit) => unit.words.map((word) => [word.id, { ...word, unitNumber: unit.number, unitTitle: unit.title }])))
+
+type CachedTeacherDashboard = { savedAt: number; dashboard: TeacherDashboardSnapshot }
+
+function readTeacherDashboardCache(subjectId?: string): CachedTeacherDashboard | null {
+  if (!subjectId) return null
+  try {
+    const raw = localStorage.getItem(`${TEACHER_DASHBOARD_CACHE_PREFIX}${subjectId}`)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<CachedTeacherDashboard>
+    return Number.isFinite(parsed.savedAt) && parsed.dashboard?.group && Array.isArray(parsed.dashboard.students)
+      ? parsed as CachedTeacherDashboard
+      : null
+  } catch {
+    return null
+  }
+}
+
+function writeTeacherDashboardCache(subjectId: string | undefined, dashboard: TeacherDashboardSnapshot, savedAt: number) {
+  if (!subjectId) return
+  try { localStorage.setItem(`${TEACHER_DASHBOARD_CACHE_PREFIX}${subjectId}`, JSON.stringify({ savedAt, dashboard })) } catch { /* Keep the live dashboard usable when storage is unavailable. */ }
+}
+
+function clearTeacherDashboardCache(subjectId?: string) {
+  if (!subjectId) return
+  try { localStorage.removeItem(`${TEACHER_DASHBOARD_CACHE_PREFIX}${subjectId}`) } catch { /* Ignore unavailable storage. */ }
+}
 
 const validAttemptTime = (occurredAt: string) => {
   const value = Date.parse(occurredAt)
@@ -171,8 +198,11 @@ function formatActivity(timestamp: number) {
 }
 
 export function TeacherApp() {
-  const [session, setSession] = useState(() => getCloudSession('teacher'))
-  const [dashboard, setDashboard] = useState<TeacherDashboardSnapshot | null>(() => cloudApiEnabled ? null : demoDashboard())
+  const initialSession = getCloudSession('teacher')
+  const initialCache = cloudApiEnabled ? readTeacherDashboardCache(initialSession?.subjectId) : null
+  const [session, setSession] = useState(() => initialSession)
+  const [dashboard, setDashboard] = useState<TeacherDashboardSnapshot | null>(() => cloudApiEnabled ? initialCache?.dashboard ?? null : demoDashboard())
+  const [lastSuccessfulLoad, setLastSuccessfulLoad] = useState<number | null>(() => initialCache?.savedAt ?? null)
   const [selectedId, setSelectedId] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -187,6 +217,9 @@ export function TeacherApp() {
     try {
       const result = await getTeacherDashboard()
       setDashboard(result)
+      const loadedAt = Date.now()
+      setLastSuccessfulLoad(loadedAt)
+      writeTeacherDashboardCache(session?.subjectId, result, loadedAt)
       if (!selectedId && result.students[0]) setSelectedId(result.students[0].profile.playerId)
       setMessage('')
     } catch (error) {
@@ -229,9 +262,9 @@ export function TeacherApp() {
   }
 
   return <main className="teacher-shell">
-    <header className="teacher-topbar"><div><p className="eyebrow">Power Up 2 · Teacher dashboard</p><h1>{dashboard?.group.displayName ?? 'Your class'}</h1><span>Join code: <strong>{dashboard?.group.joinCode ?? '—'}</strong></span></div><div><button type="button" onClick={() => void load()} disabled={busy}>{busy ? 'Updating…' : 'Refresh'}</button>{cloudApiEnabled && <button type="button" onClick={() => { clearCloudSession(); setSession(null); setDashboard(null) }}>Sign out</button>}</div></header>
+    <header className="teacher-topbar"><div><p className="eyebrow">Power Up 2 · Teacher dashboard</p><h1>{dashboard?.group.displayName ?? 'Your class'}</h1><span>Join code: <strong>{dashboard?.group.joinCode ?? '—'}</strong></span></div><div><button type="button" onClick={() => void load()} disabled={busy}>{busy ? 'Updating…' : 'Refresh'}</button>{cloudApiEnabled && <button type="button" onClick={() => { clearTeacherDashboardCache(session?.subjectId); clearCloudSession(); setSession(null); setDashboard(null); setLastSuccessfulLoad(null) }}>Sign out</button>}</div></header>
     {!cloudApiEnabled && <div className="teacher-demo-banner"><strong>Local teacher preview</strong><span>Connect the Yandex API to collect progress from children’s devices.</span></div>}
-    {message && <p className="teacher-message" role="alert">{message}</p>}
+    {message && <p className="teacher-message" role="alert">{message}{dashboard && lastSuccessfulLoad ? ` Showing the last report loaded ${new Date(lastSuccessfulLoad).toLocaleString()}.` : ''}</p>}
     {temporaryPin && <section className="teacher-pin-result" role="status"><div><strong>Temporary PIN for {temporaryPin.name}</strong><span>Give it directly to the student.</span></div><code>{temporaryPin.pin}</code><button type="button" onClick={() => setTemporaryPin(null)}>Close</button></section>}
     <section className="teacher-overview"><article><strong>{dashboard?.students.length ?? 0}</strong><span>Students</span></article><article><strong>{activeThisWeek}</strong><span>Active this week</span></article><article><strong>{classAccuracy}%</strong><span>Recent answer accuracy</span></article><article><strong>{totals.reduce((sum, metric) => sum + metric.weak, 0)}</strong><span>Words to review</span></article></section>
     <section className="teacher-workspace">

@@ -3,18 +3,31 @@ import type { StudentAuthResponse, TeacherDashboardSnapshot } from './types'
 
 const apiBaseUrl = (import.meta.env.VITE_YANDEX_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
 export const cloudApiEnabled = Boolean(apiBaseUrl)
+const REQUEST_TIMEOUT_MS = 15_000
+
+export const cloudConnectionMessage = 'Cloud server is unreachable from this network. Student progress is safe. Try another network or VPN, then press Refresh.'
 
 async function request<T>(path: string, init: RequestInit = {}, authenticated = false) {
   if (!cloudApiEnabled) throw new Error('Cloud connection is not configured.')
   const session = authenticated ? getCloudSession() : null
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
-      ...(init.headers ?? {}),
-    },
-  })
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  let response: Response
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
+        ...(init.headers ?? {}),
+      },
+    })
+  } catch {
+    throw new Error(cloudConnectionMessage)
+  } finally {
+    window.clearTimeout(timeout)
+  }
   const body = await response.json().catch(() => ({})) as T & { message?: string }
   if (!response.ok) throw new Error(body.message || `Request failed (${response.status})`)
   return body
