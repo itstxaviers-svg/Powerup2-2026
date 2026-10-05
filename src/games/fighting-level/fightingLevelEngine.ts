@@ -97,6 +97,7 @@ export const blankFightingLevelProgress = (milestoneId: FightingMilestoneId): Fi
   completed: false,
   exclusionWordIds: [],
   seenEnemyIntros: [],
+  attemptHistory: [],
 })
 
 export function normalizeFightingLevelProgress(milestoneId: FightingMilestoneId, saved?: Partial<FightingLevelProgress>): FightingLevelProgress {
@@ -109,6 +110,21 @@ export function normalizeFightingLevelProgress(milestoneId: FightingMilestoneId,
     : [])]
   const completed = config.battleCount > 0 && passedBattleIndexes.length === config.battleCount
   const battleIndex = completed ? config.battleCount - 1 : Math.min(config.battleCount - 1, Math.max(0, Number.isInteger(saved?.battleIndex) ? Number(saved?.battleIndex) : passedBattleIndexes.length))
+  const attemptHistory = Array.isArray(saved?.attemptHistory) ? saved.attemptHistory.flatMap((attempt) => {
+    if (!attempt || !Number.isInteger(attempt.battleIndex) || attempt.battleIndex < 0 || attempt.battleIndex >= config.battleCount) return []
+    const total = Math.max(0, Number(attempt.total) || 0)
+    const correct = Math.max(0, Math.min(total, Number(attempt.correct) || 0))
+    return [{
+      battleIndex: attempt.battleIndex,
+      attemptNumber: Math.max(1, Number(attempt.attemptNumber) || 1),
+      correct,
+      total,
+      errorCount: Math.max(0, Number(attempt.errorCount) || total - correct),
+      mistakeWordIds: [...new Set(Array.isArray(attempt.mistakeWordIds) ? attempt.mistakeWordIds.filter((id): id is string => typeof id === 'string') : [])],
+      passed: Boolean(attempt.passed),
+      completedAt: Math.max(0, Number(attempt.completedAt) || 0),
+    }]
+  }).slice(-100) : []
   return {
     milestoneId,
     battleIndex,
@@ -119,6 +135,7 @@ export function normalizeFightingLevelProgress(milestoneId: FightingMilestoneId,
     completed,
     exclusionWordIds: [...new Set(battleRosterIds[0] ?? [])],
     seenEnemyIntros: [...new Set(Array.isArray(saved?.seenEnemyIntros) ? saved.seenEnemyIntros.filter((id): id is FightingLevelProgress['seenEnemyIntros'][number] => typeof id === 'string' && ['inkbound-knight', 'prism-wraith', 'bellkeeper', 'crownless-marionette', 'corrupted-archivist'].includes(id)) : [])],
+    attemptHistory,
   }
 }
 
@@ -178,12 +195,24 @@ export function buildFightingTasks(records: readonly FightingVocabularyRecord[],
 export const requiredFightingCorrect = (total: number) => Math.ceil(total * .85)
 export const passesFightingBattle = (correct: number, total: number) => total > 0 && correct >= requiredFightingCorrect(total)
 
-export function recordFightingBattleResult(progress: FightingLevelProgress, correct: number, total: number): FightingLevelProgress {
+export function recordFightingBattleResult(progress: FightingLevelProgress, correct: number, total: number, mistakeWordIds: readonly string[] = [], completedAt = Date.now()): FightingLevelProgress {
   const config = fightingMilestones[progress.milestoneId]
   const accuracy = total > 0 ? correct / total : 0
   const passed = passesFightingBattle(correct, total)
   const passedBattleIndexes = passed ? [...new Set([...progress.passedBattleIndexes, progress.battleIndex])].sort() : progress.passedBattleIndexes
   const completed = passedBattleIndexes.length === config.battleCount
   const battleIndex = passed && !completed ? Math.min(config.battleCount - 1, progress.battleIndex + 1) : progress.battleIndex
-  return { ...progress, attemptCount: progress.attemptCount + 1, bestAccuracy: Math.max(progress.bestAccuracy, accuracy), passedBattleIndexes, battleIndex, completed }
+  const previousHistory = progress.attemptHistory ?? []
+  const attemptNumber = previousHistory.filter((attempt) => attempt.battleIndex === progress.battleIndex).length + 1
+  const attemptHistory = [...previousHistory, {
+    battleIndex: progress.battleIndex,
+    attemptNumber,
+    correct,
+    total,
+    errorCount: Math.max(0, total - correct),
+    mistakeWordIds: [...new Set(mistakeWordIds)],
+    passed,
+    completedAt,
+  }].slice(-100)
+  return { ...progress, attemptCount: progress.attemptCount + 1, bestAccuracy: Math.max(progress.bestAccuracy, accuracy), passedBattleIndexes, battleIndex, completed, attemptHistory }
 }

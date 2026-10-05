@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { moduleMedals } from '../data/rewards'
 import { unit1Vocabulary } from '../data/unit1Vocabulary'
+import { units } from '../data/units'
 import { moduleIds, type ModuleAttempt, type ModuleId } from '../types/game'
 import { recordSpellingMistake } from '../learning/weakWordEngine'
 import { toCityRevealStage } from '../data/cityReveal'
+import { eligibleWordIdsForModule } from '../learning/moduleCoverage'
 import { createProgress } from './localProgressRepository'
-import { applyModuleAttempt, chestTierForUnit, claimUnitReward, completedModuleCount, completedUnitCount, evolutionStageFor, isModuleComplete, isUnitComplete, isUnitUnlocked } from './progressionEngine'
+import { applyModuleAttempt, chestTierForUnit, claimUnitReward, completedModuleCount, completedUnitCount, evolutionStageFor, isFightingMilestoneUnlocked, isModuleComplete, isUnitComplete, isUnitLearningGateComplete, isUnitUnlocked } from './progressionEngine'
 
 const attempt = ({
   moduleId = 'repair',
@@ -35,6 +37,11 @@ function trainWords(moduleId: ModuleId, wordIds: string[], progress = createProg
 
 function trainFullModule(moduleId: ModuleId, progress = createProgress(1)) {
   return trainWords(moduleId, unit1Vocabulary.map((word) => word.id), progress)
+}
+
+function markModuleCovered(progress: ReturnType<typeof createProgress>, unitId: string, moduleId: ModuleId) {
+  const unit = units.find((candidate) => candidate.id === unitId)!
+  progress.units[unitId].modules[moduleId].trainedWordIds = eligibleWordIdsForModule(unit.words, moduleId)
 }
 
 describe('coverage-based progression', () => {
@@ -132,7 +139,7 @@ describe('coverage-based progression', () => {
     let progress = createProgress(1)
     expect(completedModuleCount(progress, 'unit-01')).toBe(0)
     expect(toCityRevealStage(completedModuleCount(progress, 'unit-01'))).toBe(0)
-    expect(isUnitUnlocked(progress, 1, false)).toBe(true)
+    expect(isUnitUnlocked(progress, 1, false)).toBe(false)
     expect(claimUnitReward(progress, 'unit-01')).toBe(progress)
 
     for (const [index, moduleId] of moduleIds.entries()) {
@@ -158,7 +165,7 @@ describe('coverage-based progression', () => {
 
       if (expectedCompleted < moduleIds.length) {
         expect(isUnitComplete(progress, 'unit-01')).toBe(false)
-        expect(isUnitUnlocked(progress, 1, false)).toBe(true)
+        expect(isUnitUnlocked(progress, 1, false)).toBe(false)
         expect(claimUnitReward(progress, 'unit-01')).toBe(progress)
       }
     }
@@ -171,6 +178,28 @@ describe('coverage-based progression', () => {
     expect(claimUnitReward(claimed, 'unit-01')).toBe(claimed)
   })
 
+  it('unlocks words after Code Fighter plus one game and gates milestone boundaries behind Checkpoint', () => {
+    const progress = createProgress(1)
+    markModuleCovered(progress, 'unit-01', 'repair')
+    expect(isUnitLearningGateComplete(progress, 'unit-01')).toBe(false)
+    expect(isUnitUnlocked(progress, 1, false)).toBe(false)
+
+    markModuleCovered(progress, 'unit-01', 'code-fighter')
+    expect(isUnitLearningGateComplete(progress, 'unit-01')).toBe(true)
+    expect(isUnitUnlocked(progress, 1, false)).toBe(true)
+    expect(isUnitComplete(progress, 'unit-01')).toBe(false)
+
+    for (const unitId of ['unit-02', 'unit-03']) {
+      markModuleCovered(progress, unitId, 'repair')
+      markModuleCovered(progress, unitId, 'code-fighter')
+    }
+    expect(isFightingMilestoneUnlocked(progress, 'after-unit-3')).toBe(true)
+    expect(isUnitUnlocked(progress, 3, false)).toBe(false)
+
+    progress.fightingLevels['after-unit-3'].completed = true
+    expect(isUnitUnlocked(progress, 3, false)).toBe(true)
+  })
+
   it('does not trust stale completion flags for city count, chest or sequential unlock', () => {
     const progress = createProgress(1)
     progress.units['unit-01'].completed = true
@@ -178,7 +207,7 @@ describe('coverage-based progression', () => {
 
     expect(completedModuleCount(progress, 'unit-01')).toBe(0)
     expect(isUnitComplete(progress, 'unit-01')).toBe(false)
-    expect(isUnitUnlocked(progress, 1, false)).toBe(true)
+    expect(isUnitUnlocked(progress, 1, false)).toBe(false)
     expect(claimUnitReward(progress, 'unit-01')).toBe(progress)
   })
 

@@ -19,9 +19,9 @@ import { CodeFighter } from '../games/code-fighter/CodeFighter'
 import { FightingLevel, FightingMilestoneCard } from '../games/fighting-level/FightingLevel'
 import { fightingMilestoneForUnit, fightingMilestones } from '../games/fighting-level/fightingLevelConfig'
 import { fightingMilestoneDataStatus, fightingSeed, prepareFightingLevelProgress } from '../games/fighting-level/fightingLevelEngine'
-import { CURRENT_SCHEMA_VERSION, createProfile, createProgress, defaultSettings, localProgressRepository } from '../progress/localProgressRepository'
+import { CURRENT_SCHEMA_VERSION, createProfile, createProgress, defaultSettings, localProgressRepository, migrateSavedGame } from '../progress/localProgressRepository'
 import { acknowledgeEvolutionUnlock, pendingEvolutionUnlock } from '../progress/evolutionUnlock'
-import { applyModuleAttempt, chestTierForUnit, claimUnitReward, completedModuleCount, completedUnitCount, isModuleComplete, isUnitComplete, isUnitUnlocked } from '../progress/progressionEngine'
+import { applyModuleAttempt, chestTierForUnit, claimUnitReward, completedModuleCount, completedUnitCount, isFightingMilestoneUnlocked, isModuleComplete, isUnitComplete, isUnitLearningGateComplete, isUnitUnlocked } from '../progress/progressionEngine'
 import { filterVocabularyByParts, normalizeVocabularyPartSelection, vocabularyScopeLabel, withVocabularyPartSelection } from '../learning/vocabularyParts'
 import { coverageForModule } from '../learning/moduleCoverage'
 import { recordSpellingMistake } from '../learning/weakWordEngine'
@@ -80,8 +80,9 @@ export function App() {
   }, [completionFlowUnitId, revealingUnitId, screen])
 
   const enterAdventure = (nextGame: SavedGame) => {
-    localProgressRepository.save(nextGame)
-    setGame(nextGame)
+    const migrated = migrateSavedGame(nextGame)
+    localProgressRepository.save(migrated)
+    setGame(migrated)
     setStudentAccessReady(true)
     setScreen({ name: 'world' })
   }
@@ -212,7 +213,7 @@ export function App() {
   const openFightingLevel = (milestoneId: FightingMilestoneId) => {
     const config = fightingMilestones[milestoneId]
     const milestoneUnit = units.find((unit) => unit.number === config.endUnit)
-    if (!milestoneUnit || (!demoMode && (!isUnitComplete(game.progress, milestoneUnit.id) || !fightingMilestoneDataStatus(units, milestoneId).productionReady))) return
+    if (!milestoneUnit || (!demoMode && (!isFightingMilestoneUnlocked(game.progress, config) || !fightingMilestoneDataStatus(units, milestoneId).productionReady))) return
     const prepared = prepareFightingLevelProgress(game.progress.fightingLevels[milestoneId], units, milestoneId, fightingSeed(`${game.profile.playerId}:${milestoneId}`))
     const nextGame = { ...game, progress: { ...game.progress, fightingLevels: { ...game.progress.fightingLevels, [milestoneId]: prepared } } }
     localProgressRepository.save(nextGame)
@@ -351,12 +352,16 @@ export function UnitHub({ unit, profile, progress, selectedParts, onPartSelectio
   const words = wordsForUnit(unit)
   const hasWords = words.length > 0
   const fightingMilestone = fightingMilestoneForUnit(unit.number)
+  const learningGateComplete = isUnitLearningGateComplete(progress, unit.id)
   return <main className="app-shell unit-shell">
     <header className="topbar"><button className="back-button" type="button" onClick={onBack}>← <span>World map</span></button><div className="player-summary"><img src={assets.avatars[profile.avatarId - 1].baseAsset} alt="" /><div><strong>{profile.name}</strong><EvolutionRank stage={progress.avatarEvolutionStage} /></div></div></header>
     <section className={`unit-hero activation-${Math.min(5, completed)}`}>
       <CityReveal unitId={unit.id} completedModules={completed} variant="hero" image={assets.unitImages[unit.number - 1]} highlight={highlightReveal} />
       <div className="unit-hero-content"><p className="eyebrow">Unit {String(unit.number).padStart(2, '0')}</p><h1>{unit.title}</h1><p>{hasWords ? <>{unit.courseTitle && <><strong>{unit.courseTitle}</strong> · </>}Play the five learning games below to construct this city.</> : 'Five learning games will construct this city. Vocabulary will be added by your teacher.'}</p><div className="hero-progress"><span style={{ width: `${completed * 20}%` }} /><b>{completed}/5 restored</b></div></div>
     </section>
+    <p className={`unit-unlock-note${learningGateComplete ? ' complete' : ''}`} role="status">{learningGateComplete
+      ? fightingMilestone ? 'Code Fighter + one training game complete. Your Checkpoint is unlocked.' : unit.number < units.length ? 'Code Fighter + one training game complete. The next Unit’s words are unlocked.' : 'Code Fighter + one training game complete.'
+      : 'To unlock the next Unit’s words, complete Code Fighter and any one other training game.'}</p>
     <VocabularyPartSelector unit={unit} words={words} selectedParts={selectedParts} onChange={onPartSelectionChange} />
     <section className="module-section" aria-labelledby="modules-title">
       <div><p className="eyebrow">Training route</p><h2 id="modules-title">Five power stations</h2></div>
@@ -369,7 +374,7 @@ export function UnitHub({ unit, profile, progress, selectedParts, onPartSelectio
         </article>
       })}</div>
     </section>
-    {fightingMilestone && <FightingMilestoneCard milestoneId={fightingMilestone.id} progress={progress.fightingLevels[fightingMilestone.id]} allUnits={units} unlocked={demoMode || isUnitComplete(progress, unit.id)} demoMode={demoMode} onOpen={() => onOpenFightingLevel?.(fightingMilestone.id)} />}
+    {fightingMilestone && <FightingMilestoneCard milestoneId={fightingMilestone.id} progress={progress.fightingLevels[fightingMilestone.id]} allUnits={units} unlocked={demoMode || isFightingMilestoneUnlocked(progress, fightingMilestone)} demoMode={demoMode} onOpen={() => onOpenFightingLevel?.(fightingMilestone.id)} />}
     {showCompletion && <UnitCompletionFlow unitTitle={unit.title} tier={chestTierForUnit(progress, unit.id)} rewards={rewardsForUnit(unit.number)} onClaim={onClaimReward} onContinue={onCompleteFlow} />}
   </main>
 }

@@ -47,6 +47,7 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
   const [tasks, setTasks] = useState(() => makeTasks(initialProgress))
   const [taskIndex, setTaskIndex] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
+  const [mistakeWordIds, setMistakeWordIds] = useState<string[]>([])
   const [answer, setAnswer] = useState('')
   const [answerReady, setAnswerReady] = useState(false)
   const [remainingMs, setRemainingMs] = useState(config.answerTimeMs)
@@ -72,6 +73,7 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
     setEnemyAction(correct ? 'hit' : taskIndex >= Math.floor(tasks.length * .7) ? 'heavy-attack' : 'quick-attack')
     if (!correct) {
       setImpactCount((count) => count + 1)
+      if (task) setMistakeWordIds((ids) => [...ids, task.wordId])
       if (task) onWordMistake?.(task.unitId, task.wordId)
     }
   }
@@ -110,7 +112,7 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
   const continueBattle = () => {
     if (!feedback) return
     if (taskIndex + 1 >= tasks.length) {
-      const nextProgress = recordFightingBattleResult(activeProgress, correctCount, tasks.length)
+      const nextProgress = recordFightingBattleResult(activeProgress, correctCount, tasks.length, mistakeWordIds)
       setActiveProgress(nextProgress)
       onProgressChange(nextProgress)
       setResult({ correct: correctCount, total: tasks.length, battleIndex: activeProgress.battleIndex, progress: nextProgress })
@@ -135,6 +137,7 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
     setTasks(nextTasks)
     setTaskIndex(0)
     setCorrectCount(0)
+    setMistakeWordIds([])
     setAnswer('')
     setAnswerReady(false)
     setRemainingMs(config.answerTimeMs)
@@ -161,7 +164,7 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
     setTasks((current) => current.map((candidate, index) => index === taskIndex ? fallbackFightingTaskToAudio(candidate, word) : candidate))
   }
   return <main className={`fighting-level-shell${feedback && !feedback.correct ? ' learner-hit' : ''}${reducedMotion ? ' fighting-level-reduced' : ''}`} data-impact={impactCount}>
-    <header className="fighting-level-topbar"><button className="back-button" type="button" onClick={onBack}>← <span>Milestone</span></button><strong>{config.label}</strong><span>Battle {activeProgress.battleIndex + 1}/{config.battleCount}</span></header>
+    <header className="fighting-level-topbar"><button className="back-button" type="button" onClick={onBack}>← <span>Checkpoint</span></button><strong>{config.label}</strong><span>Battle {activeProgress.battleIndex + 1}/{config.battleCount}</span></header>
     <section className={`fighting-level-arena${task.mode === 'picture' ? ' has-picture-clue' : ''}`} style={{ backgroundImage: `linear-gradient(180deg,rgba(3,16,33,.18),rgba(3,16,33,.68)),url(${assets.codeFighterArena})` }}>
       <div className="fighting-level-hud">
         <span>{taskIndex + 1}/{tasks.length}</span>
@@ -325,12 +328,12 @@ export function FightingMilestoneCard({ milestoneId, progress, allUnits, unlocke
   const status = fightingMilestoneDataStatus(allUnits, milestoneId)
   const enemyNames = config.enemyIds.map((id) => fightingEnemies[id].displayName).join(' · ')
   const disabled = !unlocked || (!demoMode && !status.productionReady)
-  const buttonLabel = progress.completed ? 'Replay milestone' : demoMode ? 'Preview Fighting Level' : !status.productionReady ? 'Awaiting vocabulary' : !unlocked ? 'Complete this Unit first' : 'Enter Fighting Level'
+  const buttonLabel = progress.completed ? 'Replay Checkpoint' : demoMode ? 'Preview Checkpoint' : !status.productionReady ? 'Awaiting vocabulary' : !unlocked ? 'Complete Code Fighter + one more game' : 'Enter Checkpoint'
   useEnterAction(onOpen, !disabled)
-  return <section className={`fighting-milestone-card${progress.completed ? ' completed' : ''}`} aria-labelledby={`${milestoneId}-title`}><div><p className="eyebrow">Cumulative milestone</p><h2 id={`${milestoneId}-title`}>{config.label}</h2><p>Units {config.startUnit}–{config.endUnit} · {config.battleCount} {config.battleCount === 1 ? 'battle' : 'battles'} · {config.answerTimeMs / 1000}s per answer</p><strong>{enemyNames}</strong></div>{status.productionReady ? <p>{status.eligibleCount} production vocabulary records ready. Each fight uses approximately one third.</p> : demoMode ? <p className="fighting-development-warning" role="status">Demo preview: battles use the production vocabulary currently available in the configured Unit range.</p> : <p className="fighting-development-warning" role="status">Development note: production vocabulary is still missing for Unit{status.missingUnitNumbers.length === 1 ? '' : 's'} {status.missingUnitNumbers.join(', ')}. No placeholder words were added.</p>}<button className="primary-button" type="button" disabled={disabled} onClick={onOpen} aria-keyshortcuts="Enter" data-enter-action>{buttonLabel}</button></section>
+  return <section className={`fighting-milestone-card${progress.completed ? ' completed' : ''}`} aria-labelledby={`${milestoneId}-title`}><div><p className="eyebrow">Checkpoint · Units {config.startUnit}–{config.endUnit}</p><h2 id={`${milestoneId}-title`}>{config.label}</h2><p>{config.battleCount} {config.battleCount === 1 ? 'battle' : 'battles'} · {config.answerTimeMs / 1000}s per answer</p><strong>{enemyNames}</strong></div>{status.productionReady ? <p>Unlock rule: finish Code Fighter and one other game in every Unit checked here. The next Unit opens after this Checkpoint is passed.</p> : demoMode ? <p className="fighting-development-warning" role="status">Demo preview: battles use the production vocabulary currently available in the configured Unit range.</p> : <p className="fighting-development-warning" role="status">Development note: production vocabulary is still missing for Unit{status.missingUnitNumbers.length === 1 ? '' : 's'} {status.missingUnitNumbers.join(', ')}. No placeholder words were added.</p>}<button className="primary-button" type="button" disabled={disabled} onClick={onOpen} aria-keyshortcuts="Enter" data-enter-action>{buttonLabel}</button></section>
 }
 
 function FightingLevelUnavailable({ milestoneId, status, onBack }: { milestoneId: FightingMilestoneId; status: ReturnType<typeof fightingMilestoneDataStatus>; onBack: () => void }) {
   useEnterAction(onBack)
-  return <main className="fighting-level-shell awaiting-shell"><section className="awaiting-card"><p className="eyebrow">Fighting Level preparation</p><h1>{fightingMilestones[milestoneId].label} is not production-ready</h1><p>Real vocabulary is still required for Unit{status.missingUnitNumbers.length === 1 ? '' : 's'} {status.missingUnitNumbers.join(', ') || 'in this milestone'}. No development words or enemy artwork substitutes are being used.</p><button className="primary-button" type="button" onClick={onBack} aria-keyshortcuts="Enter" data-enter-action>Return to unit</button></section></main>
+  return <main className="fighting-level-shell awaiting-shell"><section className="awaiting-card"><p className="eyebrow">Checkpoint preparation</p><h1>{fightingMilestones[milestoneId].label} is not production-ready</h1><p>Real vocabulary is still required for Unit{status.missingUnitNumbers.length === 1 ? '' : 's'} {status.missingUnitNumbers.join(', ') || 'in this Checkpoint'}. No development words or enemy artwork substitutes are being used.</p><button className="primary-button" type="button" onClick={onBack} aria-keyshortcuts="Enter" data-enter-action>Return to Unit</button></section></main>
 }

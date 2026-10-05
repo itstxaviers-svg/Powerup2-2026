@@ -94,7 +94,7 @@ describe('versioned local progress', () => {
     expect(migrated.progress.units['unit-01'].modules.repair.trainedWordIds).toEqual(['u1-field'])
     expect(migrated.progress.units['unit-01'].modules.repair.completed).toBe(false)
     expect(migrated.progress.units['unit-01'].completed).toBe(false)
-    expect(isUnitUnlocked(migrated.progress, 1, false)).toBe(true)
+    expect(isUnitUnlocked(migrated.progress, 1, false)).toBe(false)
     expect(claimUnitReward(migrated.progress, 'unit-01')).toBe(migrated.progress)
   })
 
@@ -179,7 +179,7 @@ describe('versioned local progress', () => {
     const progress = createProgress(3)
     progress.fightingLevels['after-unit-7'] = {
       milestoneId: 'after-unit-7', battleIndex: 1, battleRosterIds: [['u1-a', 'u2-b'], ['u4-c', 'u7-d']],
-      passedBattleIndexes: [0], attemptCount: 2, bestAccuracy: .9, completed: false, exclusionWordIds: ['stale'], seenEnemyIntros: ['prism-wraith'],
+      passedBattleIndexes: [0], attemptCount: 2, bestAccuracy: .9, completed: false, exclusionWordIds: ['stale'], seenEnemyIntros: ['prism-wraith'], attemptHistory: [],
     }
     localProgressRepository.save({
       schemaVersion: 9,

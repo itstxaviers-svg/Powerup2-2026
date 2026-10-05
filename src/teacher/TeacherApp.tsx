@@ -4,6 +4,7 @@ import { cloudApiEnabled, deleteStudent, getTeacherDashboard, loginTeacher, rese
 import type { TeacherDashboardSnapshot, TeacherStudentSnapshot } from '../cloud/types'
 import { moduleIds, type SavedGame } from '../types/game'
 import { units } from '../data/units'
+import { fightingMilestoneIds, fightingMilestones } from '../games/fighting-level/fightingLevelConfig'
 
 const moduleNames = { repair: 'Repair', 'error-hunt': 'Error Hunt', 'audio-code': 'Audio Code', 'word-strike': 'Word Strike', 'code-fighter': 'Code Fighter' } as const
 const teacherUnits = [
@@ -92,6 +93,43 @@ export function wordMistakeReport(student: TeacherStudentSnapshot) {
       modules: [...row.modules],
     }
   }).sort((a, b) => Number(b.needsReview) - Number(a.needsReview) || b.mistakes - a.mistakes || b.lastMistakeAt - a.lastMistakeAt)
+}
+
+export function checkpointReport(student: TeacherStudentSnapshot) {
+  return fightingMilestoneIds.map((milestoneId) => {
+    const config = fightingMilestones[milestoneId]
+    const progress = student.game?.progress.fightingLevels?.[milestoneId]
+    const attempts = progress?.attemptHistory ?? []
+    const battles = Array.from({ length: config.battleCount }, (_, battleIndex) => {
+      const battleAttempts = attempts.filter((attempt) => attempt.battleIndex === battleIndex)
+      const passedAttempt = battleAttempts.find((attempt) => attempt.passed)
+      const wordErrors = new Map<string, number>()
+      for (const attempt of battleAttempts) {
+        for (const wordId of attempt.mistakeWordIds) wordErrors.set(wordId, (wordErrors.get(wordId) ?? 0) + 1)
+      }
+      return {
+        battleIndex,
+        attempts: battleAttempts.length,
+        passedAttemptNumber: passedAttempt?.attemptNumber,
+        errors: battleAttempts.reduce((sum, attempt) => sum + attempt.errorCount, 0),
+        words: [...wordErrors.entries()].map(([wordId, errors]) => ({
+          wordId,
+          word: wordDetails.get(wordId)?.word ?? wordId,
+          errors,
+        })).sort((left, right) => right.errors - left.errors || left.word.localeCompare(right.word)),
+      }
+    })
+    return {
+      milestoneId,
+      label: config.label,
+      unitRange: `Units ${config.startUnit}–${config.endUnit}`,
+      completed: Boolean(progress?.completed),
+      attempts: attempts.length || progress?.attemptCount || 0,
+      errors: attempts.reduce((sum, attempt) => sum + attempt.errorCount, 0),
+      hasDetailedHistory: attempts.length > 0,
+      battles,
+    }
+  })
 }
 
 function demoDashboard(): TeacherDashboardSnapshot {
@@ -206,10 +244,12 @@ export function TeacherApp() {
 function StudentDetail({ student, onResetPin, onDelete, busy }: { student: TeacherStudentSnapshot; onResetPin: () => void; onDelete: () => void; busy: boolean }) {
   const progress = student.game?.progress
   const mistakes = wordMistakeReport(student)
+  const checkpoints = checkpointReport(student)
   const frequency = trainingFrequency(student)
   const maxAttempts = Math.max(1, ...frequency.days.map((day) => day.attempts))
   return <><header><p className="eyebrow">Selected student</p><h2>{student.profile.name}</h2><span>{student.profile.studentCode}</span></header>
     <section className="training-frequency-report"><div className="report-heading"><div><p className="eyebrow">Last 7 days</p><h3>Training frequency</h3></div><time>{frequency.attempts ? `Last training: ${formatActivity(frequency.lastActive)}` : 'No synced training yet'}</time></div><div className="frequency-summary"><article><strong>{frequency.activeDays}/7</strong><span>active days</span></article><article><strong>{frequency.sessions}</strong><span>completed sessions</span></article><article><strong>{frequency.attempts}</strong><span>answers</span></article><article><strong>{frequency.accuracy}%</strong><span>accuracy</span></article></div><div className="activity-chart" aria-label="Answers per day during the last seven days">{frequency.days.map((day) => <div key={day.key}><span><i style={{ height: `${Math.max(day.attempts ? 12 : 2, day.attempts / maxAttempts * 100)}%` }} /></span><b>{day.attempts}</b><small>{day.label}</small></div>)}</div></section>
+    <section className="checkpoint-report"><div className="report-heading"><div><p className="eyebrow">Progress gates</p><h3>Checkpoint results</h3></div></div><div className="checkpoint-list">{checkpoints.map((checkpoint) => <article className={checkpoint.completed ? 'completed' : ''} key={checkpoint.milestoneId}><header><div><strong>{checkpoint.label}</strong><small>{checkpoint.unitRange}</small></div><span>{checkpoint.completed ? 'Passed' : checkpoint.attempts ? 'In progress' : 'Not attempted'}</span></header>{checkpoint.hasDetailedHistory ? <><p><b>{checkpoint.attempts}</b> {checkpoint.attempts === 1 ? 'attempt' : 'attempts'} · <b>{checkpoint.errors}</b> {checkpoint.errors === 1 ? 'error' : 'errors'}</p>{checkpoint.battles.map((battle) => battle.attempts > 0 && <div className="checkpoint-battle" key={battle.battleIndex}><strong>Battle {battle.battleIndex + 1}: {battle.passedAttemptNumber ? `passed on attempt ${battle.passedAttemptNumber}` : `${battle.attempts} ${battle.attempts === 1 ? 'attempt' : 'attempts'}, not passed yet`}</strong><small>{battle.errors} {battle.errors === 1 ? 'error' : 'errors'}</small>{battle.words.length > 0 && <div className="checkpoint-words">{battle.words.map((item) => <span key={item.wordId}>{item.word}{item.errors > 1 ? ` ×${item.errors}` : ''}</span>)}</div>}</div>)}</> : <p>{checkpoint.completed ? 'Passed before detailed Checkpoint reporting was enabled.' : 'No Checkpoint attempts synced yet.'}</p>}</article>)}</div></section>
     <section className="weak-word-report"><div className="report-heading"><div><p className="eyebrow">Individual vocabulary</p><h3>Words with mistakes</h3></div><span>{mistakes.filter((word) => word.needsReview).length} to review</span></div>{mistakes.length ? <div className="mistake-list">{mistakes.map((item) => <article key={`${item.unitId}:${item.wordId}`}><div><strong>{item.word}</strong>{item.translation && <em>{item.translation}</em>}<small>Unit {item.unitNumber ?? '—'} · {item.unitTitle}{item.modules.length ? ` · ${item.modules.join(', ')}` : ''}</small></div><span className={item.needsReview ? 'needs-review' : 'mastered'}>{item.needsReview ? 'Review' : 'Practised'}</span><b>{item.mistakes} {item.mistakes === 1 ? 'error' : 'errors'}</b><time>{item.lastMistakeAt ? formatActivity(item.lastMistakeAt) : 'Earlier'}</time></article>)}</div> : <p>No word mistakes have been synced yet.</p>}</section>
     <section className="student-unit-report"><h3>Coverage by Unit</h3>{teacherUnits.map((unit) => <article key={unit.id}><div><strong>Unit {unit.number} · {unit.title}</strong><small>{moduleIds.map((id) => `${moduleNames[id]} ${progress?.units[unit.id]?.modules[id].trainedWordIds.length ?? 0}`).join(' · ')}</small></div><b>{moduleIds.filter((id) => progress?.units[unit.id]?.modules[id].completed).length}/5</b></article>)}</section><footer><button type="button" onClick={onResetPin} disabled={busy || !cloudApiEnabled}>Reset PIN</button><button className="danger" type="button" onClick={onDelete} disabled={busy || !cloudApiEnabled}>Delete student</button></footer></>
 }

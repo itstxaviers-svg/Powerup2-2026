@@ -167,6 +167,25 @@ describe('Fighting Level task and repeat rules', () => {
     expect(prepareFightingLevelProgress(passed, units, 'after-unit-7', 123).battleIndex).toBe(1)
   })
 
+  it('records every Checkpoint attempt with its attempt number, errors and exact words', () => {
+    const prepared = prepareFightingLevelProgress(undefined, makeUnits(3), 'after-unit-3', 5)
+    const failed = recordFightingBattleResult(prepared, 4, 6, ['u1-word-1', 'u2-word-2'], 100)
+    const passed = recordFightingBattleResult(failed, 6, 6, [], 200)
+
+    expect(failed.attemptHistory[0]).toEqual({
+      battleIndex: 0,
+      attemptNumber: 1,
+      correct: 4,
+      total: 6,
+      errorCount: 2,
+      mistakeWordIds: ['u1-word-1', 'u2-word-2'],
+      passed: false,
+      completedAt: 100,
+    })
+    expect(passed.attemptHistory[1]).toMatchObject({ attemptNumber: 2, errorCount: 0, passed: true, completedAt: 200 })
+    expect(passed.completed).toBe(true)
+  })
+
   it('persists intro-seen state without changing attempts, rosters or completion', () => {
     const prepared = prepareFightingLevelProgress(undefined, makeUnits(3), 'after-unit-3', 5)
     const seen = markFightingEnemyIntroSeen(prepared, 'inkbound-knight')

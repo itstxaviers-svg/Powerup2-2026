@@ -11,7 +11,7 @@ import { fightingMilestoneIds } from '../games/fighting-level/fightingLevelConfi
 import { queueGameSnapshot } from '../cloud/syncQueue'
 
 const STORAGE_KEY = 'power-up-2-progress-v1'
-export const CURRENT_SCHEMA_VERSION = 11
+export const CURRENT_SCHEMA_VERSION = 12
 export const defaultSettings: GameSettings = { musicEnabled: true, sfxEnabled: true, reducedMotion: false }
 
 const blankModule = (): ModuleProgress => ({ completed: false, trainedWordIds: [], bestAccuracy: 0, attempts: 0, stars: 0, variantStateByWordId: {} })
@@ -63,7 +63,7 @@ const isSavedGame = (value: unknown): value is SavedGame => {
   )
 }
 
-function migrateGame(parsed: SavedGame): SavedGame {
+export function migrateSavedGame(parsed: SavedGame): SavedGame {
   const fresh = createProgress(parsed.profile.avatarId)
   const unitsProgress = Object.fromEntries(units.map((unit) => {
     const savedUnit = parsed.progress.units[unit.id]
@@ -131,7 +131,7 @@ export const localProgressRepository: ProgressRepository = {
       if (!raw) return null
       const parsed: unknown = JSON.parse(raw)
       if (!isSavedGame(parsed)) return null
-      return migrateGame(parsed)
+      return migrateSavedGame(parsed)
     } catch {
       return null
     }

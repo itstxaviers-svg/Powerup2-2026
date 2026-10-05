@@ -127,6 +127,17 @@ export type GameSettings = {
 export type FightingMilestoneId = 'after-unit-3' | 'after-unit-7' | 'after-unit-9'
 export type FightingEnemyId = 'inkbound-knight' | 'prism-wraith' | 'bellkeeper' | 'crownless-marionette' | 'corrupted-archivist'
 
+export type FightingCheckpointAttempt = {
+  battleIndex: number
+  attemptNumber: number
+  correct: number
+  total: number
+  errorCount: number
+  mistakeWordIds: string[]
+  passed: boolean
+  completedAt: number
+}
+
 export type FightingLevelProgress = {
   milestoneId: FightingMilestoneId
   battleIndex: number
@@ -137,6 +148,7 @@ export type FightingLevelProgress = {
   completed: boolean
   exclusionWordIds: string[]
   seenEnemyIntros: FightingEnemyId[]
+  attemptHistory: FightingCheckpointAttempt[]
 }
 
 export type PlayerProgress = {

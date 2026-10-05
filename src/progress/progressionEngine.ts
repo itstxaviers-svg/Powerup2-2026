@@ -3,6 +3,7 @@ import { units } from '../data/units'
 import { coverageForModule, coverageForTrainedWordIds, eligibleWordIdsForModule } from '../learning/moduleCoverage'
 import { recordQuestionVariant } from '../learning/questionVariation'
 import { moduleIds, type ModuleAttempt, type PlayerProgress } from '../types/game'
+import { fightingMilestoneForUnit, fightingMilestones, type FightingMilestoneConfig } from '../games/fighting-level/fightingLevelConfig'
 
 export const completedModuleCount = (progress: PlayerProgress, unitId: string) => {
   const unit = units.find((candidate) => candidate.id === unitId)
@@ -29,14 +30,26 @@ export function evolutionStageFor(completedUnits: number): 1 | 2 | 3 | 4 {
   return 1
 }
 
-// Units 1–3 already contain production vocabulary and are available for class
-// review. Later cities keep the normal sequential lock until their content is ready.
-export const initiallyAvailableUnitIds = new Set(['unit-01', 'unit-02', 'unit-03'])
+export const isUnitLearningGateComplete = (progress: PlayerProgress, unitId: string) =>
+  isModuleComplete(progress, unitId, 'code-fighter')
+  && moduleIds.some((moduleId) => moduleId !== 'code-fighter' && isModuleComplete(progress, unitId, moduleId))
+
+export const isFightingMilestoneUnlocked = (progress: PlayerProgress, milestone: FightingMilestoneConfig | keyof typeof fightingMilestones) => {
+  const config = typeof milestone === 'string' ? fightingMilestones[milestone] : milestone
+  return units
+    .filter((unit) => unit.number >= config.startUnit && unit.number <= config.endUnit)
+    .every((unit) => isUnitLearningGateComplete(progress, unit.id))
+}
 
 export function isUnitUnlocked(progress: PlayerProgress, unitIndex: number, unlockAll = import.meta.env.VITE_UNLOCK_ALL_UNITS === 'true' || import.meta.env.VITE_DEMO_MODE === 'true') {
   const unit = units[unitIndex]
   const previousUnit = units[unitIndex - 1]
-  return unlockAll || Boolean(unit && initiallyAvailableUnitIds.has(unit.id)) || Boolean(previousUnit && isUnitComplete(progress, previousUnit.id))
+  if (unlockAll) return true
+  if (!unit) return false
+  if (!previousUnit) return true
+  const checkpoint = fightingMilestoneForUnit(previousUnit.number)
+  if (checkpoint) return Boolean(progress.fightingLevels[checkpoint.id]?.completed)
+  return isUnitLearningGateComplete(progress, previousUnit.id)
 }
 
 const withAchievement = (progress: PlayerProgress, id: AchievementId, now: number) =>

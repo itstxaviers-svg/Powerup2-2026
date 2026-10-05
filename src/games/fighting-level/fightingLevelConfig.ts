@@ -53,9 +53,9 @@ export const fightingEnemies: Record<FightingEnemyId, FightingEnemyConfig> = {
 }
 
 export const fightingMilestones: Record<FightingMilestoneId, FightingMilestoneConfig> = {
-  'after-unit-3': { id: 'after-unit-3', label: 'Fighting Level I', startUnit: 1, endUnit: 3, battleCount: 1, answerTimeMs: 10_000, enemyIds: ['inkbound-knight'] },
-  'after-unit-7': { id: 'after-unit-7', label: 'Fighting Level II', startUnit: 4, endUnit: 7, battleCount: 2, answerTimeMs: 8_000, enemyIds: ['prism-wraith', 'bellkeeper'] },
-  'after-unit-9': { id: 'after-unit-9', label: 'Super Battle', startUnit: 1, endUnit: 9, battleCount: 2, answerTimeMs: 6_000, enemyIds: ['crownless-marionette', 'corrupted-archivist'] },
+  'after-unit-3': { id: 'after-unit-3', label: 'Checkpoint I', startUnit: 1, endUnit: 3, battleCount: 1, answerTimeMs: 10_000, enemyIds: ['inkbound-knight'] },
+  'after-unit-7': { id: 'after-unit-7', label: 'Checkpoint II', startUnit: 4, endUnit: 7, battleCount: 2, answerTimeMs: 8_000, enemyIds: ['prism-wraith', 'bellkeeper'] },
+  'after-unit-9': { id: 'after-unit-9', label: 'Final Checkpoint', startUnit: 1, endUnit: 9, battleCount: 2, answerTimeMs: 6_000, enemyIds: ['crownless-marionette', 'corrupted-archivist'] },
 }
 
 export const fightingMilestoneIds = Object.keys(fightingMilestones) as FightingMilestoneId[]

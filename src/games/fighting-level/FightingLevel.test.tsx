@@ -73,7 +73,7 @@ describe('Fighting Level presentation', () => {
     ]
     const html = renderToStaticMarkup(<FightingMilestoneCard milestoneId="after-unit-3" progress={blankFightingLevelProgress('after-unit-3')} allUnits={units} unlocked demoMode onOpen={vi.fn()} />)
     expect(html).toContain('Demo preview')
-    expect(html).toContain('Preview Fighting Level')
+    expect(html).toContain('Preview Checkpoint')
     expect(html).toContain('aria-keyshortcuts="Enter"')
     expect(html).toContain('data-enter-action="true"')
     expect(html).not.toContain('disabled')
