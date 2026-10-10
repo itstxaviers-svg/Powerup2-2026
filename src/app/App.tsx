@@ -353,13 +353,16 @@ export function UnitHub({ unit, profile, progress, selectedParts, onPartSelectio
   const hasWords = words.length > 0
   const fightingMilestone = fightingMilestoneForUnit(unit.number)
   const learningGateComplete = isUnitLearningGateComplete(progress, unit.id)
+  const checkpointUnlocked = Boolean(fightingMilestone && isFightingMilestoneUnlocked(progress, fightingMilestone))
   return <main className="app-shell unit-shell">
     <header className="topbar"><button className="back-button" type="button" onClick={onBack}>← <span>World map</span></button><div className="player-summary"><img src={assets.avatars[profile.avatarId - 1].baseAsset} alt="" /><div><strong>{profile.name}</strong><EvolutionRank stage={progress.avatarEvolutionStage} /></div></div></header>
     <section className={`unit-hero activation-${Math.min(5, completed)}`}>
       <CityReveal unitId={unit.id} completedModules={completed} variant="hero" image={assets.unitImages[unit.number - 1]} highlight={highlightReveal} />
       <div className="unit-hero-content"><p className="eyebrow">Unit {String(unit.number).padStart(2, '0')}</p><h1>{unit.title}</h1><p>{hasWords ? <>{unit.courseTitle && <><strong>{unit.courseTitle}</strong> · </>}Play the five learning games below to construct this city.</> : 'Five learning games will construct this city. Vocabulary will be added by your teacher.'}</p><div className="hero-progress"><span style={{ width: `${completed * 20}%` }} /><b>{completed}/5 restored</b></div></div>
     </section>
-    <p className={`unit-unlock-note${learningGateComplete ? ' complete' : ''}`} role="status">{learningGateComplete
+    <p className={`unit-unlock-note${learningGateComplete || checkpointUnlocked ? ' complete' : ''}`} role="status">{checkpointUnlocked
+      ? 'Checkpoint I is available. Pass it to unlock Unit 4.'
+      : learningGateComplete
       ? fightingMilestone ? 'Code Fighter + one training game complete. Your Checkpoint is unlocked.' : unit.number < units.length ? 'Code Fighter + one training game complete. The next Unit’s words are unlocked.' : 'Code Fighter + one training game complete.'
       : 'To unlock the next Unit’s words, complete Code Fighter and any one other training game.'}</p>
     <VocabularyPartSelector unit={unit} words={words} selectedParts={selectedParts} onChange={onPartSelectionChange} />

@@ -34,8 +34,11 @@ export const isUnitLearningGateComplete = (progress: PlayerProgress, unitId: str
   isModuleComplete(progress, unitId, 'code-fighter')
   && moduleIds.some((moduleId) => moduleId !== 'code-fighter' && isModuleComplete(progress, unitId, moduleId))
 
+export const initiallyAvailableMilestoneIds = new Set(['after-unit-3'])
+
 export const isFightingMilestoneUnlocked = (progress: PlayerProgress, milestone: FightingMilestoneConfig | keyof typeof fightingMilestones) => {
   const config = typeof milestone === 'string' ? fightingMilestones[milestone] : milestone
+  if (initiallyAvailableMilestoneIds.has(config.id)) return true
   return units
     .filter((unit) => unit.number >= config.startUnit && unit.number <= config.endUnit)
     .every((unit) => isUnitLearningGateComplete(progress, unit.id))
@@ -43,7 +46,8 @@ export const isFightingMilestoneUnlocked = (progress: PlayerProgress, milestone:
 
 // Units 1–3 were already released to the class before Checkpoint progression
 // was introduced. Keep them available so returning students retain access to
-// their saved training, while Unit 4 remains gated by Checkpoint I.
+// their saved training. Checkpoint I is also available for that returning
+// cohort, while Unit 4 remains gated until the Checkpoint is passed.
 export const initiallyAvailableUnitIds = new Set(['unit-01', 'unit-02', 'unit-03'])
 
 export function isUnitUnlocked(progress: PlayerProgress, unitIndex: number, unlockAll = import.meta.env.VITE_UNLOCK_ALL_UNITS === 'true' || import.meta.env.VITE_DEMO_MODE === 'true') {

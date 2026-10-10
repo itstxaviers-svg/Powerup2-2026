@@ -178,11 +178,13 @@ describe('coverage-based progression', () => {
     expect(claimUnitReward(claimed, 'unit-01')).toBe(claimed)
   })
 
-  it('unlocks words after Code Fighter plus one game and gates milestone boundaries behind Checkpoint', () => {
+  it('keeps Checkpoint I available for restored Units 1–3 and gates Unit 4 behind passing it', () => {
     const progress = createProgress(1)
     markModuleCovered(progress, 'unit-01', 'repair')
     expect(isUnitLearningGateComplete(progress, 'unit-01')).toBe(false)
     expect(isUnitUnlocked(progress, 1, false)).toBe(true)
+    expect(isFightingMilestoneUnlocked(progress, 'after-unit-3')).toBe(true)
+    expect(isUnitUnlocked(progress, 3, false)).toBe(false)
 
     markModuleCovered(progress, 'unit-01', 'code-fighter')
     expect(isUnitLearningGateComplete(progress, 'unit-01')).toBe(true)
@@ -193,7 +195,6 @@ describe('coverage-based progression', () => {
       markModuleCovered(progress, unitId, 'repair')
       markModuleCovered(progress, unitId, 'code-fighter')
     }
-    expect(isFightingMilestoneUnlocked(progress, 'after-unit-3')).toBe(true)
     expect(isUnitUnlocked(progress, 3, false)).toBe(false)
 
     progress.fightingLevels['after-unit-3'].completed = true
