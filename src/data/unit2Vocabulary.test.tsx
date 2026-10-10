@@ -151,11 +151,11 @@ describe('Unit 2 production vocabulary', () => {
     expect(cityRevealByUnit['unit-02'].stages[1].name).toBe('Clock mechanism')
   })
 
-  it('starts with Unit 1 and keeps later Units locked until the learning gate is complete', () => {
+  it('keeps the released Units 1–3 available and Unit 4 locked behind Checkpoint I', () => {
     const progress = createProgress(1)
     expect(isUnitUnlocked(progress, 0, false)).toBe(true)
-    expect(isUnitUnlocked(progress, 1, false)).toBe(false)
-    expect(isUnitUnlocked(progress, 2, false)).toBe(false)
+    expect(isUnitUnlocked(progress, 1, false)).toBe(true)
+    expect(isUnitUnlocked(progress, 2, false)).toBe(true)
     expect(isUnitUnlocked(progress, 3, false)).toBe(false)
   })
 

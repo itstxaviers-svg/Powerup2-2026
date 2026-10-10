@@ -74,7 +74,7 @@ describe('versioned local progress', () => {
     expect(migrated.progress.vocabularyPartSelections['unit-02']).toEqual([1])
   })
 
-  it('drops unknown coverage IDs and refuses legacy flags as proof for chest or next-city access', () => {
+  it('drops unknown coverage IDs and refuses legacy flags as proof for chest or post-Checkpoint access', () => {
     const progress = createProgress(3)
     progress.units['unit-01'].completed = true
     progress.units['unit-01'].modules.repair = {
@@ -94,7 +94,8 @@ describe('versioned local progress', () => {
     expect(migrated.progress.units['unit-01'].modules.repair.trainedWordIds).toEqual(['u1-field'])
     expect(migrated.progress.units['unit-01'].modules.repair.completed).toBe(false)
     expect(migrated.progress.units['unit-01'].completed).toBe(false)
-    expect(isUnitUnlocked(migrated.progress, 1, false)).toBe(false)
+    expect(isUnitUnlocked(migrated.progress, 1, false)).toBe(true)
+    expect(isUnitUnlocked(migrated.progress, 3, false)).toBe(false)
     expect(claimUnitReward(migrated.progress, 'unit-01')).toBe(migrated.progress)
   })
 

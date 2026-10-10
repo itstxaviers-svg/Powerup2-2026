@@ -139,7 +139,7 @@ describe('coverage-based progression', () => {
     let progress = createProgress(1)
     expect(completedModuleCount(progress, 'unit-01')).toBe(0)
     expect(toCityRevealStage(completedModuleCount(progress, 'unit-01'))).toBe(0)
-    expect(isUnitUnlocked(progress, 1, false)).toBe(false)
+    expect(isUnitUnlocked(progress, 1, false)).toBe(true)
     expect(claimUnitReward(progress, 'unit-01')).toBe(progress)
 
     for (const [index, moduleId] of moduleIds.entries()) {
@@ -165,7 +165,7 @@ describe('coverage-based progression', () => {
 
       if (expectedCompleted < moduleIds.length) {
         expect(isUnitComplete(progress, 'unit-01')).toBe(false)
-        expect(isUnitUnlocked(progress, 1, false)).toBe(false)
+        expect(isUnitUnlocked(progress, 1, false)).toBe(true)
         expect(claimUnitReward(progress, 'unit-01')).toBe(progress)
       }
     }
@@ -182,7 +182,7 @@ describe('coverage-based progression', () => {
     const progress = createProgress(1)
     markModuleCovered(progress, 'unit-01', 'repair')
     expect(isUnitLearningGateComplete(progress, 'unit-01')).toBe(false)
-    expect(isUnitUnlocked(progress, 1, false)).toBe(false)
+    expect(isUnitUnlocked(progress, 1, false)).toBe(true)
 
     markModuleCovered(progress, 'unit-01', 'code-fighter')
     expect(isUnitLearningGateComplete(progress, 'unit-01')).toBe(true)
@@ -200,6 +200,34 @@ describe('coverage-based progression', () => {
     expect(isUnitUnlocked(progress, 3, false)).toBe(true)
   })
 
+  it('keeps Units 4–9 on the current learning-gate and Checkpoint sequence', () => {
+    const progress = createProgress(1)
+    expect(units.map((_, index) => isUnitUnlocked(progress, index, false))).toEqual([
+      true, true, true, false, false, false, false, false, false,
+    ])
+
+    progress.fightingLevels['after-unit-3'].completed = true
+    expect(isUnitUnlocked(progress, 3, false)).toBe(true)
+    expect(isUnitUnlocked(progress, 4, false)).toBe(false)
+
+    for (const unitId of ['unit-04', 'unit-05', 'unit-06', 'unit-07']) {
+      markModuleCovered(progress, unitId, 'repair')
+      markModuleCovered(progress, unitId, 'code-fighter')
+    }
+    expect(isUnitUnlocked(progress, 4, false)).toBe(true)
+    expect(isUnitUnlocked(progress, 5, false)).toBe(true)
+    expect(isUnitUnlocked(progress, 6, false)).toBe(true)
+    expect(isFightingMilestoneUnlocked(progress, 'after-unit-7')).toBe(true)
+    expect(isUnitUnlocked(progress, 7, false)).toBe(false)
+
+    progress.fightingLevels['after-unit-7'].completed = true
+    expect(isUnitUnlocked(progress, 7, false)).toBe(true)
+    expect(isUnitUnlocked(progress, 8, false)).toBe(false)
+    markModuleCovered(progress, 'unit-08', 'repair')
+    markModuleCovered(progress, 'unit-08', 'code-fighter')
+    expect(isUnitUnlocked(progress, 8, false)).toBe(true)
+  })
+
   it('does not trust stale completion flags for city count, chest or sequential unlock', () => {
     const progress = createProgress(1)
     progress.units['unit-01'].completed = true
@@ -207,7 +235,7 @@ describe('coverage-based progression', () => {
 
     expect(completedModuleCount(progress, 'unit-01')).toBe(0)
     expect(isUnitComplete(progress, 'unit-01')).toBe(false)
-    expect(isUnitUnlocked(progress, 1, false)).toBe(false)
+    expect(isUnitUnlocked(progress, 1, false)).toBe(true)
     expect(claimUnitReward(progress, 'unit-01')).toBe(progress)
   })
 
