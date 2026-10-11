@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "power-up-2-api-proxy",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-11",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "TEACHER_EMAIL": "powerup1-2026@yandex.com"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "power-up-2-progress",
+      "database_id": "6da6a359-663c-477b-ace7-c0d043df9f2f"
+    }
+  ]
+}

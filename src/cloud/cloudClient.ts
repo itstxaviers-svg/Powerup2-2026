@@ -5,7 +5,7 @@ const apiBaseUrl = (import.meta.env.VITE_YANDEX_API_URL as string | undefined)?.
 export const cloudApiEnabled = Boolean(apiBaseUrl)
 const REQUEST_TIMEOUT_MS = 15_000
 
-export const cloudConnectionMessage = 'Cloud server is unreachable from this network. Student progress is safe. Try another network or VPN, then press Refresh.'
+export const cloudConnectionMessage = 'Cloud service is temporarily unavailable. Student progress is safe on this device. Please try Refresh again.'
 
 async function request<T>(path: string, init: RequestInit = {}, authenticated = false) {
   if (!cloudApiEnabled) throw new Error('Cloud connection is not configured.')
