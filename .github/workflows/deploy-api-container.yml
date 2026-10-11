@@ -1,0 +1,105 @@
+name: Deploy backup API container
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  YC_FOLDER_ID: b1gm3qqs1tc2ftl6ft4v
+  YC_FUNCTION_ID: d4e43d8cbls1rgcre9av
+  YC_RUNTIME_SERVICE_ACCOUNT_ID: ajebmoa3fgte6lngdqec
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Issue short-lived Yandex IAM token
+        id: iam
+        uses: yc-actions/yc-iam-token@v1
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+
+      - name: Find or create container registry
+        id: registry
+        shell: bash
+        env:
+          YC_IAM_TOKEN: ${{ steps.iam.outputs.token }}
+        run: |
+          set -euo pipefail
+          api='https://container-registry.api.cloud.yandex.net/container-registry/v1/registries'
+          auth="Authorization: Bearer ${YC_IAM_TOKEN}"
+          registry_id="$(curl --fail --silent --show-error -H "$auth" "${api}?folderId=${YC_FOLDER_ID}" | jq -r '.registries[0].id // empty')"
+          if [[ -z "$registry_id" ]]; then
+            curl --fail --silent --show-error -X POST -H "$auth" -H 'Content-Type: application/json' \
+              -d "{\"folderId\":\"${YC_FOLDER_ID}\",\"name\":\"power-up-2\"}" "$api" >/dev/null
+            for _ in {1..24}; do
+              sleep 5
+              registry_id="$(curl --fail --silent --show-error -H "$auth" "${api}?folderId=${YC_FOLDER_ID}" | jq -r '.registries[0].id // empty')"
+              [[ -n "$registry_id" ]] && break
+            done
+          fi
+          test -n "$registry_id"
+          echo "id=$registry_id" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Yandex Container Registry
+        uses: yc-actions/yc-cr-login@v3
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+
+      - name: Build and push API image
+        env:
+          REGISTRY_ID: ${{ steps.registry.outputs.id }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "cr.yandex/${REGISTRY_ID}/power-up-2-api:${IMAGE_TAG}" cloud/yandex
+          docker push "cr.yandex/${REGISTRY_ID}/power-up-2-api:${IMAGE_TAG}"
+
+      - name: Read the active function configuration
+        id: runtime
+        shell: bash
+        env:
+          YC_IAM_TOKEN: ${{ steps.iam.outputs.token }}
+        run: |
+          set -euo pipefail
+          versions="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${YC_IAM_TOKEN}" \
+            "https://serverless-functions.api.cloud.yandex.net/functions/v1/versions?functionId=${YC_FUNCTION_ID}&pageSize=1000")"
+          environment="$(jq -c '[.versions[] | select(.status == "ACTIVE")] | max_by(.createdAt) | .environment' <<<"$versions")"
+          test "$environment" != 'null'
+          while IFS= read -r value; do
+            echo "::add-mask::$value"
+          done < <(jq -r '.[]' <<<"$environment")
+          {
+            echo 'environment<<POWERUP_ENV'
+            jq -r 'to_entries[] | "\(.key)=\(.value)"' <<<"$environment"
+            echo 'POWERUP_ENV'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Deploy public serverless container
+        id: container
+        uses: yc-actions/yc-sls-container-deploy@v5
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          container-name: power-up-2-api-backup
+          folder-id: ${{ env.YC_FOLDER_ID }}
+          public: true
+          revision-service-account-id: ${{ env.YC_RUNTIME_SERVICE_ACCOUNT_ID }}
+          revision-cores: 1
+          revision-memory: 512Mb
+          revision-core-fraction: 20
+          revision-concurrency: 8
+          revision-image-url: cr.yandex/${{ steps.registry.outputs.id }}/power-up-2-api:${{ github.sha }}
+          revision-execution-timeout: 60
+          revision-env: ${{ steps.runtime.outputs.environment }}
+
+      - name: Verify the deployed API
+        env:
+          CONTAINER_ID: ${{ steps.container.outputs.id }}
+        run: |
+          url="https://${CONTAINER_ID}.containers.yandexcloud.net"
+          curl --fail --silent --show-error --retry 12 --retry-delay 5 --retry-all-errors "${url}/health"
+          echo "API_URL=$url" >> "$GITHUB_STEP_SUMMARY"
