@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 env:
   YC_FOLDER_ID: b1gm3qqs1tc2ftl6ft4v
@@ -19,9 +20,9 @@ jobs:
 
       - name: Issue short-lived Yandex IAM token
         id: iam
-        uses: yc-actions/yc-iam-token@v1
+        uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
         with:
-          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          yc-sa-id: ${{ env.YC_RUNTIME_SERVICE_ACCOUNT_ID }}
 
       - name: Find or create container registry
         id: registry
@@ -48,7 +49,7 @@ jobs:
       - name: Log in to Yandex Container Registry
         uses: yc-actions/yc-cr-login@v3
         with:
-          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          yc-iam-token: ${{ steps.iam.outputs.token }}
 
       - name: Build and push API image
         env:
@@ -83,7 +84,7 @@ jobs:
         id: container
         uses: yc-actions/yc-sls-container-deploy@v5
         with:
-          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          yc-iam-token: ${{ steps.iam.outputs.token }}
           container-name: power-up-2-api-backup
           folder-id: ${{ env.YC_FOLDER_ID }}
           public: true
