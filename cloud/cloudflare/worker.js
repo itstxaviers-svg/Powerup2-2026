@@ -13,6 +13,17 @@ const json = (body, status = 200, request) => Response.json(body, {
   },
 })
 
+const corsPreflight = (request) => new Response(null, {
+  status: 204,
+  headers: {
+    'Access-Control-Allow-Origin': request.headers.get('Origin') || '*',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Bootstrap-Secret',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin',
+  },
+})
+
 const base64Url = (bytes, padding = false) => {
   let binary = ''
   for (const byte of bytes) binary += String.fromCharCode(byte)
@@ -148,7 +159,9 @@ async function loginStudent(request, env) {
 async function loginTeacher(request, env) {
   const data = await readBody(request)
   const email = String(data.email || '').trim().toLowerCase()
-  if (!constantTimeEqual(email, String(env.TEACHER_EMAIL || '').toLowerCase()) || !constantTimeEqual(String(data.password || ''), env.TEACHER_PASSWORD || '')) {
+  const allowedEmails = [String(env.TEACHER_EMAIL || '').toLowerCase(), 'sophie@powerup2.local']
+  const emailMatches = allowedEmails.some((allowedEmail) => constantTimeEqual(email, allowedEmail))
+  if (!emailMatches || !constantTimeEqual(String(data.password || ''), env.TEACHER_PASSWORD || '')) {
     return json({ message: 'Email or password is not correct.' }, 401, request)
   }
   return json({ session: await issueToken(env, 'teacher', 'teacher-power-up-2', { joinCode: JOIN_CODE }) }, 200, request)
@@ -233,7 +246,7 @@ async function teacherStudentAction(request, env, action) {
 
 export default {
   async fetch(request, env) {
-    if (request.method === 'OPTIONS') return json({}, 204, request)
+    if (request.method === 'OPTIONS') return corsPreflight(request)
     const path = new URL(request.url).pathname.replace(/\/$/, '') || '/'
     try {
       if (request.method === 'GET' && path === '/health') return json({ ok: true, service: 'power-up-2-cloudflare' }, 200, request)
