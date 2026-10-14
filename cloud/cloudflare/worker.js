@@ -187,6 +187,15 @@ async function syncEvents(request, env) {
       if (String(profile.playerId || '') !== identity.sub) continue
       const studentCode = String(identity.studentCode || profile.studentCode || `PLAYER-${identity.sub.slice(0, 3)}`).toUpperCase().slice(0, 40)
       const now = Date.now()
+      const restoredProfile = await env.DB.prepare('SELECT student_id FROM students WHERE student_code = ?').bind(studentCode).first()
+      if (restoredProfile && restoredProfile.student_id !== identity.sub) {
+        await env.DB.batch([
+          env.DB.prepare('UPDATE snapshots SET student_id = ? WHERE student_id = ?').bind(identity.sub, restoredProfile.student_id),
+          env.DB.prepare('UPDATE attempts SET student_id = ? WHERE student_id = ?').bind(identity.sub, restoredProfile.student_id),
+          env.DB.prepare('UPDATE sync_events SET student_id = ? WHERE student_id = ?').bind(identity.sub, restoredProfile.student_id),
+          env.DB.prepare('DELETE FROM students WHERE student_id = ?').bind(restoredProfile.student_id),
+        ])
+      }
       await env.DB.prepare(`INSERT INTO students
         (student_id, student_code, display_name, group_name, join_code, avatar_id, pin_hash, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)

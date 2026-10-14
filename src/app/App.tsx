@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { StudentAccess } from '../auth/StudentAccess'
 import { clearCloudSession, getCloudSession } from '../cloud/cloudSession'
-import { flushCloudSync, installCloudSync, queueAttempt } from '../cloud/syncQueue'
+import { flushCloudSync, installCloudSync, queueAttempt, queueGameSnapshot } from '../cloud/syncQueue'
 import { MainNav, AccountView, ProgressView, RewardsView, SettingsView, type MainSection } from './ProgressScreens'
 import { EvolutionRank } from '../components/avatars/AvatarEvolution'
 import { EvolutionUnlockOverlay } from '../components/avatars/EvolutionUnlockOverlay'
@@ -69,6 +69,10 @@ export function App() {
   }, [game?.settings])
 
   useEffect(() => installCloudSync(), [])
+
+  useEffect(() => {
+    if (game && studentAccessReady && getCloudSession('student')) void queueGameSnapshot(game)
+  }, [game?.profile.playerId, studentAccessReady])
 
   useEffect(() => {
     if (!revealingUnitId) return

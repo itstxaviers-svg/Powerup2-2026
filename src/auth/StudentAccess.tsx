@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { cloudApiEnabled, loginStudent, registerStudent } from '../cloud/cloudClient'
 import { clearCloudSession } from '../cloud/cloudSession'
 import { avatars } from '../data/assets'
-import { CURRENT_SCHEMA_VERSION, createProfile, createProgress, defaultSettings } from '../progress/localProgressRepository'
+import { CURRENT_SCHEMA_VERSION, createProfile, createProgress, defaultSettings, localProgressRepository } from '../progress/localProgressRepository'
 import type { SavedGame } from '../types/game'
 
 type Mode = 'register' | 'login'
@@ -25,12 +25,26 @@ export function StudentAccess({ onReady }: { onReady: (game: SavedGame) => void 
     try {
       if (mode === 'login') {
         const result = await loginStudent(studentCode.trim().toUpperCase(), pin)
-        const game = result.game ?? {
+        const localGame = localProgressRepository.load()
+        const matchingLocalGame = localGame?.profile.studentCode?.toUpperCase() === result.profile.studentCode.toUpperCase() ? localGame : null
+        const game = result.game ?? (matchingLocalGame ? {
+          ...matchingLocalGame,
+          profile: {
+            ...matchingLocalGame.profile,
+            playerId: result.profile.playerId,
+            studentCode: result.profile.studentCode,
+            joinCode: result.profile.joinCode,
+            name: result.profile.name,
+            group: result.profile.group,
+            avatarId: result.profile.avatarId,
+            createdAt: result.profile.createdAt,
+          },
+        } : {
           schemaVersion: CURRENT_SCHEMA_VERSION,
           profile: { ...createProfile(result.profile.name, result.profile.group, result.profile.avatarId), playerId: result.profile.playerId, studentCode: result.profile.studentCode, joinCode: result.profile.joinCode, createdAt: result.profile.createdAt },
           progress: createProgress(result.profile.avatarId),
           settings: defaultSettings,
-        }
+        })
         onReady(game)
         return
       }
