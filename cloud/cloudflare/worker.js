@@ -148,22 +148,11 @@ async function loginStudent(request, env) {
   if (!/^[A-Z0-9]{2,12}-\d{3}$/.test(studentCode) || !/^\d{6}$/.test(pin)) {
     return json({ message: 'Explorer ID or PIN is not correct.' }, 401, request)
   }
-  let row = await env.DB.prepare('SELECT * FROM students WHERE student_code = ?').bind(studentCode).first()
-  if (!row) {
-    const studentId = crypto.randomUUID()
-    const now = Date.now()
-    const codeName = studentCode.split('-', 1)[0]
-    const displayName = codeName === 'PLAYER' ? 'Restored student' : `${codeName.slice(0, 1)}${codeName.slice(1).toLowerCase()}`
-    await env.DB.prepare(`INSERT INTO students
-      (student_id, student_code, display_name, group_name, join_code, avatar_id, pin_hash, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(studentId, studentCode, displayName, GROUP_NAME, JOIN_CODE, 1, await hashPin(pin), now, now).run()
-    row = await env.DB.prepare('SELECT * FROM students WHERE student_id = ?').bind(studentId).first()
-  } else if (!row.pin_hash) {
-    await env.DB.prepare('UPDATE students SET pin_hash = ?, updated_at = ? WHERE student_id = ?')
-      .bind(await hashPin(pin), Date.now(), row.student_id).run()
-    row = await env.DB.prepare('SELECT * FROM students WHERE student_id = ?').bind(row.student_id).first()
-  } else if (!await verifyPin(pin, row.pin_hash)) {
+  const row = await env.DB.prepare('SELECT * FROM students WHERE student_code = ?').bind(studentCode).first()
+  if (row && !row.pin_hash) {
+    return json({ message: 'This account needs a new PIN from your teacher. Your progress is safe on the original device.' }, 409, request)
+  }
+  if (!row || !await verifyPin(pin, row.pin_hash)) {
     return json({ message: 'Explorer ID or PIN is not correct.' }, 401, request)
   }
   const snapshot = await env.DB.prepare('SELECT payload FROM snapshots WHERE student_id = ?').bind(row.student_id).first()
