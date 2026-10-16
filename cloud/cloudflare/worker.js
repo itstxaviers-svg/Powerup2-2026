@@ -194,7 +194,7 @@ async function syncEvents(request, env) {
       if (String(profile.playerId || '') !== identity.sub) continue
       const studentCode = String(identity.studentCode || profile.studentCode || `PLAYER-${identity.sub.slice(0, 3)}`).toUpperCase().slice(0, 40)
       const now = Date.now()
-      const restoredProfile = await env.DB.prepare('SELECT student_id FROM students WHERE student_code = ?').bind(studentCode).first()
+      const restoredProfile = await env.DB.prepare('SELECT student_id, pin_hash FROM students WHERE student_code = ?').bind(studentCode).first()
       if (restoredProfile && restoredProfile.student_id !== identity.sub) {
         await env.DB.batch([
           env.DB.prepare('UPDATE snapshots SET student_id = ? WHERE student_id = ?').bind(identity.sub, restoredProfile.student_id),
@@ -205,10 +205,10 @@ async function syncEvents(request, env) {
       }
       await env.DB.prepare(`INSERT INTO students
         (student_id, student_code, display_name, group_name, join_code, avatar_id, pin_hash, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(student_id) DO UPDATE SET student_code=excluded.student_code, display_name=excluded.display_name,
           group_name=excluded.group_name, join_code=excluded.join_code, avatar_id=excluded.avatar_id, updated_at=excluded.updated_at`)
-        .bind(identity.sub, studentCode, String(profile.name || studentCode).slice(0, 32), String(profile.group || GROUP_NAME), String(profile.joinCode || identity.joinCode || JOIN_CODE).toUpperCase(), Number(profile.avatarId || 1), Number(profile.createdAt || now), now).run()
+        .bind(identity.sub, studentCode, String(profile.name || studentCode).slice(0, 32), String(profile.group || GROUP_NAME), String(profile.joinCode || identity.joinCode || JOIN_CODE).toUpperCase(), Number(profile.avatarId || 1), restoredProfile?.pin_hash || null, Number(profile.createdAt || now), now).run()
       await env.DB.prepare(`INSERT INTO snapshots (student_id, payload, updated_at) VALUES (?, ?, ?)
         ON CONFLICT(student_id) DO UPDATE SET payload=excluded.payload, updated_at=excluded.updated_at`)
         .bind(identity.sub, JSON.stringify(event.payload), now).run()
