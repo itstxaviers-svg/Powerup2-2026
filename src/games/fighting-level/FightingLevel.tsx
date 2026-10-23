@@ -13,7 +13,7 @@ import { buildFightingTasks, fallbackFightingTaskToAudio, fightingMilestoneDataS
 
 const FIGHTING_TICK_MS = 100
 
-export function FightingLevel({ milestoneId, allUnits, progress, reducedMotion = false, demoMode = false, onProgressChange, onWordMistake, onBack }: {
+export function FightingLevel({ milestoneId, allUnits, progress, reducedMotion = false, demoMode = false, onProgressChange, onWordMistake, onBack, onReport }: {
   milestoneId: FightingMilestoneId
   allUnits: readonly UnitData[]
   progress: FightingLevelProgress
@@ -22,14 +22,15 @@ export function FightingLevel({ milestoneId, allUnits, progress, reducedMotion =
   onProgressChange: (progress: FightingLevelProgress) => void
   onWordMistake?: (unitId: string, wordId: string) => void
   onBack: () => void
+  onReport?: () => void
 }) {
   const status = fightingMilestoneDataStatus(allUnits, milestoneId)
   const roster = progress.battleRosterIds[progress.battleIndex] ?? []
   if ((!demoMode && !status.productionReady) || roster.length === 0) return <FightingLevelUnavailable milestoneId={milestoneId} status={status} onBack={onBack} />
-  return <FightingBattle key={milestoneId} milestoneId={milestoneId} allUnits={allUnits} initialProgress={progress} reducedMotion={reducedMotion} onProgressChange={onProgressChange} onWordMistake={onWordMistake} onBack={onBack} />
+  return <FightingBattle key={milestoneId} milestoneId={milestoneId} allUnits={allUnits} initialProgress={progress} reducedMotion={reducedMotion} onProgressChange={onProgressChange} onWordMistake={onWordMistake} onBack={onBack} onReport={onReport} />
 }
 
-function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion, onProgressChange, onWordMistake, onBack }: {
+function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion, onProgressChange, onWordMistake, onBack, onReport }: {
   milestoneId: FightingMilestoneId
   allUnits: readonly UnitData[]
   initialProgress: FightingLevelProgress
@@ -37,6 +38,7 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
   onProgressChange: (progress: FightingLevelProgress) => void
   onWordMistake?: (unitId: string, wordId: string) => void
   onBack: () => void
+  onReport?: () => void
 }) {
   const config = fightingMilestones[milestoneId]
   const [activeProgress, setActiveProgress] = useState(initialProgress)
@@ -154,6 +156,7 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
     onRepeat={() => startBattle(result.progress, tasks)}
     onNextBattle={() => startBattle(result.progress)}
     onBack={onBack}
+    onReport={onReport}
   />
 
   const timerPercent = answerReady ? Math.max(0, remainingMs / config.answerTimeMs * 100) : 0
@@ -293,7 +296,7 @@ function FightingTimer({ ready, remainingMs, percent }: { ready: boolean; remain
   return <div className={`fighting-level-timer${ready && remainingMs <= 2000 ? ' urgent' : ''}${ready ? '' : ' waiting'}`} role="timer" aria-label={ready ? `${seconds} seconds remaining` : 'Waiting for the audio clue'}><strong>{ready ? `${seconds}s` : 'READY'}</strong><i aria-hidden="true"><span style={{ width: `${percent}%` }} /></i></div>
 }
 
-export function FightingLevelResult({ milestoneId, enemy, result, reducedMotion, onRepeat, onNextBattle, onBack }: {
+export function FightingLevelResult({ milestoneId, enemy, result, reducedMotion, onRepeat, onNextBattle, onBack, onReport }: {
   milestoneId: FightingMilestoneId
   enemy: FightingEnemyConfig
   result: { correct: number; total: number; battleIndex?: number; progress: FightingLevelProgress }
@@ -301,6 +304,7 @@ export function FightingLevelResult({ milestoneId, enemy, result, reducedMotion,
   onRepeat: () => void
   onNextBattle: () => void
   onBack: () => void
+  onReport?: () => void
 }) {
   const passed = passesFightingBattle(result.correct, result.total)
   const [resultAction, setResultAction] = useState<FightingEnemyAction>(passed ? 'defeat' : 'ultimate')
@@ -313,7 +317,7 @@ export function FightingLevelResult({ milestoneId, enemy, result, reducedMotion,
   }, [passed, reducedMotion])
   useEnterAction(passed ? hasNextBattle ? onNextBattle : onBack : onRepeat)
   const accuracy = Math.round(result.correct / result.total * 100)
-  return <main className={`fighting-level-shell fighting-level-result${reducedMotion ? ' fighting-level-reduced' : ''}`}><section className="fighting-level-result-card"><p className="eyebrow">{config.label}</p><FightingEnemyStage enemy={enemy} action={resultAction} /><h1>{passed ? 'PASS' : 'REPEAT'}</h1><div className="result-score">{accuracy}%</div><p>{result.correct} / {result.total} correct · {requiredFightingCorrect(result.total)} required</p>{passed && enemy.victoryLine && <p className="fighting-result-enemy-line">{enemy.victoryLine}</p>}{passed ? hasNextBattle ? <button className="primary-button" type="button" onClick={onNextBattle} aria-keyshortcuts="Enter" data-enter-action>Next battle →</button> : <button className="primary-button" type="button" onClick={onBack} aria-keyshortcuts="Enter" data-enter-action>Return to the world →</button> : <button className="primary-button" type="button" onClick={onRepeat} aria-keyshortcuts="Enter" data-enter-action>Repeat battle</button>}</section></main>
+  return <main className={`fighting-level-shell fighting-level-result${reducedMotion ? ' fighting-level-reduced' : ''}`}><section className="fighting-level-result-card"><p className="eyebrow">{config.label}</p><FightingEnemyStage enemy={enemy} action={resultAction} /><h1>{passed ? 'PASS' : 'REPEAT'}</h1><div className="result-score">{accuracy}%</div><p>{result.correct} / {result.total} correct · {requiredFightingCorrect(result.total)} required</p>{passed && enemy.victoryLine && <p className="fighting-result-enemy-line">{enemy.victoryLine}</p>}{passed ? hasNextBattle ? <button className="primary-button" type="button" onClick={onNextBattle} aria-keyshortcuts="Enter" data-enter-action>Next battle →</button> : <button className="primary-button" type="button" onClick={onBack} aria-keyshortcuts="Enter" data-enter-action>{onReport ? 'See and send result →' : 'Return to the world →'}</button> : <button className="primary-button" type="button" onClick={onRepeat} aria-keyshortcuts="Enter" data-enter-action>Repeat battle</button>}{onReport && <button className="fighting-result-report-link" type="button" onClick={onReport}>See report for teacher</button>}</section></main>
 }
 
 export function FightingMilestoneCard({ milestoneId, progress, allUnits, unlocked, demoMode = false, onOpen }: {
