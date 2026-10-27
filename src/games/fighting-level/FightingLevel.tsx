@@ -10,10 +10,11 @@ import { createManualIntroController, type ManualIntroState } from '../intro/man
 import { isAcceptedRepairAnswer } from '../training/repairEngine'
 import { fightingEnemies, fightingEnemyForBattle, fightingMilestones, resolveFightingEnemyAsset, type FightingEnemyAction, type FightingEnemyConfig } from './fightingLevelConfig'
 import { buildFightingTasks, fallbackFightingTaskToAudio, fightingMilestoneDataStatus, markFightingEnemyIntroSeen, passesFightingBattle, recordFightingBattleResult, requiredFightingCorrect, rosterRecords, type FightingTask } from './fightingLevelEngine'
+import type { CheckpointDraft } from '../../checkpoint/fullCheckpointProgress'
 
 const FIGHTING_TICK_MS = 100
 
-export function FightingLevel({ milestoneId, allUnits, progress, reducedMotion = false, demoMode = false, onProgressChange, onWordMistake, onBack, onReport }: {
+export function FightingLevel({ milestoneId, allUnits, progress, reducedMotion = false, demoMode = false, onProgressChange, onWordMistake, onBack, onReport, initialDraft, onDraftChange }: {
   milestoneId: FightingMilestoneId
   allUnits: readonly UnitData[]
   progress: FightingLevelProgress
@@ -23,14 +24,16 @@ export function FightingLevel({ milestoneId, allUnits, progress, reducedMotion =
   onWordMistake?: (unitId: string, wordId: string) => void
   onBack: () => void
   onReport?: () => void
+  initialDraft?: CheckpointDraft | null
+  onDraftChange?: (draft: CheckpointDraft | null) => void
 }) {
   const status = fightingMilestoneDataStatus(allUnits, milestoneId)
   const roster = progress.battleRosterIds[progress.battleIndex] ?? []
   if ((!demoMode && !status.productionReady) || roster.length === 0) return <FightingLevelUnavailable milestoneId={milestoneId} status={status} onBack={onBack} />
-  return <FightingBattle key={milestoneId} milestoneId={milestoneId} allUnits={allUnits} initialProgress={progress} reducedMotion={reducedMotion} onProgressChange={onProgressChange} onWordMistake={onWordMistake} onBack={onBack} onReport={onReport} />
+  return <FightingBattle key={milestoneId} milestoneId={milestoneId} allUnits={allUnits} initialProgress={progress} reducedMotion={reducedMotion} onProgressChange={onProgressChange} onWordMistake={onWordMistake} onBack={onBack} onReport={onReport} initialDraft={initialDraft} onDraftChange={onDraftChange} />
 }
 
-function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion, onProgressChange, onWordMistake, onBack, onReport }: {
+function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion, onProgressChange, onWordMistake, onBack, onReport, initialDraft, onDraftChange }: {
   milestoneId: FightingMilestoneId
   allUnits: readonly UnitData[]
   initialProgress: FightingLevelProgress
@@ -39,6 +42,8 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
   onWordMistake?: (unitId: string, wordId: string) => void
   onBack: () => void
   onReport?: () => void
+  initialDraft?: CheckpointDraft | null
+  onDraftChange?: (draft: CheckpointDraft | null) => void
 }) {
   const config = fightingMilestones[milestoneId]
   const [activeProgress, setActiveProgress] = useState(initialProgress)
@@ -47,9 +52,9 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
     progress.battleIndex * 101,
   )
   const [tasks, setTasks] = useState(() => makeTasks(initialProgress))
-  const [taskIndex, setTaskIndex] = useState(0)
-  const [correctCount, setCorrectCount] = useState(0)
-  const [mistakeWordIds, setMistakeWordIds] = useState<string[]>([])
+  const [taskIndex, setTaskIndex] = useState(initialDraft?.taskIndex ?? 0)
+  const [correctCount, setCorrectCount] = useState(initialDraft?.correctCount ?? 0)
+  const [mistakeWordIds, setMistakeWordIds] = useState<string[]>(initialDraft?.mistakeWordIds ?? [])
   const [answer, setAnswer] = useState('')
   const [answerReady, setAnswerReady] = useState(false)
   const [remainingMs, setRemainingMs] = useState(config.answerTimeMs)
@@ -117,10 +122,12 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
       const nextProgress = recordFightingBattleResult(activeProgress, correctCount, tasks.length, mistakeWordIds)
       setActiveProgress(nextProgress)
       onProgressChange(nextProgress)
+      onDraftChange?.(null)
       setResult({ correct: correctCount, total: tasks.length, battleIndex: activeProgress.battleIndex, progress: nextProgress })
       return
     }
     const nextTask = tasks[taskIndex + 1]
+    onDraftChange?.({ taskIndex: taskIndex + 1, correctCount, mistakeWordIds, rosterIds: activeProgress.battleRosterIds[activeProgress.battleIndex] ?? [] })
     lockedRef.current = false
     setTaskIndex((index) => index + 1)
     setAnswer('')
@@ -131,6 +138,7 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
   }
 
   const startBattle = (progress: FightingLevelProgress, retainedTasks?: FightingTask[]) => {
+    onDraftChange?.(null)
     const nextTasks = retainedTasks ?? makeTasks(progress)
     const nextEnemy = fightingEnemyForBattle(milestoneId, progress.battleIndex) ?? enemy
     setActiveProgress(progress)

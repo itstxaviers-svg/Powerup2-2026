@@ -2,8 +2,9 @@ import type { FightingLevelProgress, UnitData } from '../types/game'
 
 export function checkpointReport(name: string, group: string, progress: FightingLevelProgress, units: readonly UnitData[]): string {
   const words = new Map(units.flatMap((unit) => unit.words.map((word) => [word.id, word.word] as const)))
+  const totalWords = words.size
   const lines = [
-    'POWER UP 2 · CHECKPOINT 1 · UNITS 1–3',
+    `POWER UP 2 · CHECKPOINT 1 · UNITS 1–3 · ${totalWords} СЛОВ`,
     `Ученик: ${name.trim()}`,
     `Группа: ${group.trim() || 'не указана'}`,
     `Итог: ${progress.completed ? 'ПРОЙДЕН' : 'не пройден'}`,
@@ -14,7 +15,8 @@ export function checkpointReport(name: string, group: string, progress: Fighting
   for (const attempt of progress.attemptHistory) {
     const date = attempt.completedAt ? new Date(attempt.completedAt).toLocaleString('ru-RU') : 'время не записано'
     const mistakes = attempt.mistakeWordIds.map((id) => words.get(id) ?? id)
-    lines.push(`Попытка ${attempt.attemptNumber} · ${date} · ${attempt.passed ? 'ПРОЙДЕНА' : 'не пройдена'}`)
+    const legacy = attempt.total !== totalWords
+    lines.push(`Попытка ${attempt.attemptNumber} · ${date} · ${legacy ? 'старая версия — не засчитывается' : attempt.passed ? 'ПРОЙДЕНА' : 'не пройдена'}`)
     lines.push(`Верно: ${attempt.correct}/${attempt.total}; ошибок: ${attempt.errorCount}`)
     lines.push(`Слова с ошибками: ${mistakes.length ? mistakes.join(', ') : 'нет'}`)
     lines.push('')

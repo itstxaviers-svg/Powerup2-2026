@@ -3,12 +3,13 @@ import { unit1Vocabulary } from '../data/unit1Vocabulary'
 import { unit2Vocabulary } from '../data/unit2Vocabulary'
 import { unit3Vocabulary } from '../data/unit3Vocabulary'
 import { FightingLevel } from '../games/fighting-level/FightingLevel'
-import { blankFightingLevelProgress, fightingSeed, prepareFightingLevelProgress } from '../games/fighting-level/fightingLevelEngine'
 import type { FightingLevelProgress, UnitData } from '../types/game'
 import { checkpointReport } from './checkpointReport'
+import { prepareFullCheckpointProgress, validCheckpointDraft, type CheckpointDraft } from './fullCheckpointProgress'
 
 const PROFILE_KEY = 'powerup2-checkpoint1-profile-v1'
 const PROGRESS_KEY = 'powerup2-checkpoint1-progress-v1'
+const DRAFT_KEY = 'powerup2-checkpoint1-draft-v2'
 const MILESTONE = 'after-unit-3' as const
 const units: UnitData[] = [
   { id: 'unit-01', number: 1, title: 'Skyport Basics', words: unit1Vocabulary },
@@ -42,7 +43,12 @@ export function CheckpointApp() {
   const [progress, setProgress] = useState<FightingLevelProgress>(() => {
     const saved = stored<FightingLevelProgress>(PROGRESS_KEY)
     const learner = stored<Profile>(PROFILE_KEY)
-    return prepareFightingLevelProgress(saved ?? blankFightingLevelProgress(MILESTONE), units, MILESTONE, fightingSeed(learner?.localId ?? 'checkpoint-one'))
+    return prepareFullCheckpointProgress(saved, units, learner?.localId ?? 'checkpoint-one')
+  })
+  const [draft, setDraft] = useState<CheckpointDraft | null>(() => {
+    const learner = stored<Profile>(PROFILE_KEY)
+    const prepared = prepareFullCheckpointProgress(stored<FightingLevelProgress>(PROGRESS_KEY), units, learner?.localId ?? 'checkpoint-one')
+    return validCheckpointDraft(stored<CheckpointDraft>(DRAFT_KEY), prepared)
   })
   const [screen, setScreen] = useState<Screen>('home')
   const [notice, setNotice] = useState('')
@@ -54,8 +60,10 @@ export function CheckpointApp() {
     if (!trimmedName) return
     const learner = { name: trimmedName, group: group.trim(), localId: profile?.localId ?? localId() }
     setProfile(learner)
-    const prepared = prepareFightingLevelProgress(progress, units, MILESTONE, fightingSeed(learner.localId))
+    const prepared = prepareFullCheckpointProgress(progress, units, learner.localId)
     setProgress(prepared)
+    const preparedDraft = validCheckpointDraft(draft, prepared)
+    setDraft(preparedDraft)
     const profileSaved = save(PROFILE_KEY, learner)
     const progressSaved = save(PROGRESS_KEY, prepared)
     setNotice(profileSaved && progressSaved ? '' : 'Браузер запретил локальное сохранение. Не закрывайте страницу до отправки результата.')
@@ -65,6 +73,11 @@ export function CheckpointApp() {
   const updateProgress = (next: FightingLevelProgress) => {
     setProgress(next)
     if (!save(PROGRESS_KEY, next)) setNotice('Не удалось сохранить результат на этом устройстве. Скопируйте отчёт до закрытия страницы.')
+  }
+
+  const updateDraft = (next: CheckpointDraft | null) => {
+    setDraft(next)
+    if (!save(DRAFT_KEY, next)) setNotice('Не удалось сохранить текущий этап на этом устройстве. Не закрывайте страницу до отправки результата.')
   }
 
   const copyReport = async () => {
@@ -82,7 +95,7 @@ export function CheckpointApp() {
   }
 
   if (screen === 'battle' && profile) return <>
-    <FightingLevel milestoneId={MILESTONE} allUnits={units} progress={progress} onProgressChange={updateProgress} onBack={() => setScreen('report')} onReport={() => setScreen('report')} />
+    <FightingLevel milestoneId={MILESTONE} allUnits={units} progress={progress} initialDraft={draft} onDraftChange={updateDraft} onProgressChange={updateProgress} onBack={() => setScreen('report')} onReport={() => setScreen('report')} />
     {notice && <p className="checkpoint-save-warning" role="alert">{notice}</p>}
   </>
 
@@ -95,15 +108,15 @@ export function CheckpointApp() {
         <p>{profile.name}{profile.group ? ` · ${profile.group}` : ''} · {progress.attemptHistory.length} {progress.attemptHistory.length === 1 ? 'попытка' : 'попыток'}</p>
         <p>Результат хранится только на этом устройстве. Скопируйте текст или скачайте файл и отправьте учителю.</p>
         <pre className="checkpoint-report-text">{report}</pre>
-        <div className="checkpoint-actions"><button className="primary-button" type="button" onClick={copyReport}>Скопировать отчёт</button><button className="checkpoint-secondary" type="button" onClick={downloadReport}>Скачать .txt</button><button className="checkpoint-secondary" type="button" onClick={() => setScreen('battle')}>Повторить бой</button></div>
+        <div className="checkpoint-actions"><button className="primary-button" type="button" onClick={copyReport}>Скопировать отчёт</button><button className="checkpoint-secondary" type="button" onClick={downloadReport}>Скачать .txt</button><button className="checkpoint-secondary" type="button" onClick={() => setScreen('battle')}>{draft?.taskIndex ? `Продолжить с вопроса ${draft.taskIndex + 1}` : 'Повторить бой'}</button></div>
         {notice && <p className="checkpoint-notice" role="status">{notice}</p>}
       </section> : <section className="checkpoint-panel" aria-labelledby="checkpoint-start-heading">
         <p className="eyebrow">The Inkbound Knight</p><h2 id="checkpoint-start-heading">Проверь слова трёх юнитов</h2>
-        <p>Задания с картинками и аудио. На ответ — 10 секунд; для победы нужно не менее 85% правильных ответов. После боя получите отчёт с ошибками и номером попытки.</p>
+        <p>Все 134 слова юнитов 1–3 в случайном порядке: задания с картинками и аудио. На ответ — 10 секунд; для победы нужно не менее 114 правильных ответов. После каждого вопроса ход сохраняется на этом устройстве. В конце получите отчёт с ошибками и номером попытки.</p>
         <form className="checkpoint-form" onSubmit={start}>
           <label>Имя ученика<input value={name} onChange={(event) => setName(event.target.value)} required maxLength={80} autoComplete="name" placeholder="Имя и фамилия" /></label>
           <label>Группа / класс (необязательно)<input value={group} onChange={(event) => setGroup(event.target.value)} maxLength={80} placeholder="Например, 5А" /></label>
-          <button className="primary-button" type="submit">{progress.attemptHistory.length ? 'Продолжить Checkpoint →' : 'Начать Checkpoint →'}</button>
+          <button className="primary-button" type="submit">{draft?.taskIndex ? `Продолжить с вопроса ${draft.taskIndex + 1} →` : progress.attemptHistory.length ? 'Новая попытка →' : 'Начать Checkpoint →'}</button>
         </form>
         {progress.attemptHistory.length > 0 && <button className="checkpoint-secondary" type="button" onClick={() => setScreen('report')}>Посмотреть сохранённый отчёт</button>}
         <p className="checkpoint-privacy">Данные остаются в браузере. Не очищайте данные сайта, пока не отправите результат учителю.</p>
