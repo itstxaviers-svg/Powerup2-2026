@@ -7,9 +7,9 @@ import { useEnterAction } from '../useEnterAction'
 import { createCodeFighterAudioGate, type CodeFighterAudioGate } from '../code-fighter/codeFighterAudioGate'
 import { createAnswerCountdown } from '../code-fighter/codeFighterCountdown'
 import { createManualIntroController, type ManualIntroState } from '../intro/manualIntroController'
-import { isAcceptedRepairAnswer } from '../training/repairEngine'
 import { fightingEnemies, fightingEnemyForBattle, fightingMilestones, resolveFightingEnemyAsset, type FightingEnemyAction, type FightingEnemyConfig } from './fightingLevelConfig'
 import { buildFightingTasks, fallbackFightingTaskToAudio, fightingMilestoneDataStatus, markFightingEnemyIntroSeen, passesFightingBattle, recordFightingBattleResult, requiredFightingCorrect, rosterRecords, type FightingTask } from './fightingLevelEngine'
+import { isAcceptedCheckpointSpelling } from './checkpointAnswer'
 import type { CheckpointDraft } from '../../checkpoint/fullCheckpointProgress'
 
 const FIGHTING_TICK_MS = 100
@@ -188,10 +188,10 @@ function FightingBattle({ milestoneId, allUnits, initialProgress, reducedMotion,
       <section className="fighting-level-task" aria-live="polite">
         <p className="eyebrow">{task.mode === 'audio' ? 'Audio recall' : 'Picture recall'}</p>
         <h1>{task.mode === 'audio' ? 'Listen, then type the English answer.' : 'Name what you see in English.'}</h1>
-        <FightingTaskPrompt key={`${task.wordId}-${taskIndex}-${task.mode}`} task={task} word={word} answer={answer} answerReady={answerReady} disabled={Boolean(feedback)} onAnswerChange={setAnswer} onPromptReady={() => setAnswerReady(true)} onSubmit={() => resolve(isAcceptedRepairAnswer(word, answer))} />
+        <FightingTaskPrompt key={`${task.wordId}-${taskIndex}-${task.mode}`} task={task} word={word} answer={answer} answerReady={answerReady} disabled={Boolean(feedback)} onAnswerChange={setAnswer} onPromptReady={() => setAnswerReady(true)} onSubmit={() => resolve(isAcceptedCheckpointSpelling(answer, [word.word, ...(word.acceptedForms ?? [])]))} />
         {feedback && (feedback.correct
           ? <FightingFeedback correct timedOut={feedback.timedOut} word={word.word} isFinal={taskIndex + 1 === tasks.length} onContinue={continueBattle} />
-          : <CorrectionPractice answer={word.word} acceptedAnswers={[word.word, ...(word.acceptedForms ?? [])]} onContinue={continueBattle} continueLabel={taskIndex + 1 === tasks.length ? 'See result →' : 'Next task →'} />)}
+          : <CorrectionPractice answer={word.word} acceptedAnswers={[word.word, ...(word.acceptedForms ?? [])]} answerMatches={isAcceptedCheckpointSpelling} retryMessage="Check the letters and try again. Capitals and punctuation do not matter." onContinue={continueBattle} continueLabel={taskIndex + 1 === tasks.length ? 'See result →' : 'Next task →'} />)}
       </section>
     </section>
   </main>

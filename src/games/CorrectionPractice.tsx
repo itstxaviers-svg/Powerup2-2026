@@ -8,6 +8,8 @@ export type CorrectionAttemptResult = {
   status: 'retry' | 'corrected' | 'exhausted'
 }
 
+export type CorrectionAnswerMatcher = (answer: string, acceptedAnswers: readonly string[]) => boolean
+
 const normalizeCorrectionAnswer = (value: string) => value
   .normalize('NFKC')
   .trim()
@@ -25,9 +27,10 @@ export function evaluateCorrectionAttempt(
   acceptedAnswers: readonly string[],
   attemptsUsed: number,
   maximumAttempts = MAX_CORRECTION_ATTEMPTS,
+  answerMatches: CorrectionAnswerMatcher = isCorrectionAnswerAccepted,
 ): CorrectionAttemptResult {
   const nextAttemptsUsed = Math.min(maximumAttempts, attemptsUsed + 1)
-  if (isCorrectionAnswerAccepted(answer, acceptedAnswers)) return { attemptsUsed: nextAttemptsUsed, status: 'corrected' }
+  if (answerMatches(answer, acceptedAnswers)) return { attemptsUsed: nextAttemptsUsed, status: 'corrected' }
   return { attemptsUsed: nextAttemptsUsed, status: nextAttemptsUsed >= maximumAttempts ? 'exhausted' : 'retry' }
 }
 
@@ -37,12 +40,16 @@ export function CorrectionPractice({
   onContinue,
   continueLabel = 'Continue →',
   className = '',
+  answerMatches = isCorrectionAnswerAccepted,
+  retryMessage = 'Not quite. Copy the answer exactly and try again.',
 }: {
   answer: string
   acceptedAnswers?: readonly string[]
   onContinue: () => void
   continueLabel?: string
   className?: string
+  answerMatches?: CorrectionAnswerMatcher
+  retryMessage?: string
 }) {
   const [typedAnswer, setTypedAnswer] = useState('')
   const [attemptsUsed, setAttemptsUsed] = useState(0)
@@ -53,7 +60,7 @@ export function CorrectionPractice({
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!typedAnswer.trim() || finished) return
-    const result = evaluateCorrectionAttempt(typedAnswer, acceptedAnswers, attemptsUsed)
+    const result = evaluateCorrectionAttempt(typedAnswer, acceptedAnswers, attemptsUsed, MAX_CORRECTION_ATTEMPTS, answerMatches)
     setAttemptsUsed(result.attemptsUsed)
     setStatus(result.status)
     if (result.status === 'retry') setTypedAnswer('')
@@ -67,7 +74,7 @@ export function CorrectionPractice({
       <label><span>Type the correct answer to continue</span><input autoFocus value={typedAnswer} onChange={(event) => setTypedAnswer(event.target.value)} autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} /></label>
       <button className="primary-button compact" type="submit" disabled={!typedAnswer.trim()}>Check</button>
       <small>Correction attempt {attemptsUsed + 1} of {MAX_CORRECTION_ATTEMPTS}</small>
-      {status === 'retry' && <em>Not quite. Copy the answer exactly and try again.</em>}
+      {status === 'retry' && <em>{retryMessage}</em>}
     </form> : <div className="correction-complete">
       <span>{status === 'corrected' ? 'Corrected! This word will still return in review.' : 'Five tries used. This word will return in review.'}</span>
       <button className="primary-button compact" type="button" onClick={onContinue} aria-keyshortcuts="Enter" data-enter-action>{continueLabel}</button>
