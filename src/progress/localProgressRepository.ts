@@ -8,7 +8,6 @@ import { defaultVocabularyPartSelections, normalizeVocabularyPartSelections } fr
 import { completedUnitCount, evolutionStageFor } from './progressionEngine'
 import { blankFightingLevelProgress, normalizeFightingLevelProgress } from '../games/fighting-level/fightingLevelEngine'
 import { fightingMilestoneIds } from '../games/fighting-level/fightingLevelConfig'
-import { queueGameSnapshot } from '../cloud/syncQueue'
 
 const STORAGE_KEY = 'power-up-2-progress-v1'
 export const CURRENT_SCHEMA_VERSION = 12
@@ -139,16 +138,17 @@ export const localProgressRepository: ProgressRepository = {
   save(game) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(game))
-      void queueGameSnapshot(game)
+      return true
     } catch {
-      // The app remains usable if browser storage is disabled or full.
+      return false
     }
   },
   clear() {
     try {
       localStorage.removeItem(STORAGE_KEY)
+      return true
     } catch {
-      // Deliberately ignore unavailable storage.
+      return false
     }
   },
 }

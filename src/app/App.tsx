@@ -1,7 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { StudentAccess } from '../auth/StudentAccess'
-import { clearCloudSession, getCloudSession } from '../cloud/cloudSession'
-import { flushCloudSync, installCloudSync, queueAttempt, queueGameSnapshot } from '../cloud/syncQueue'
 import { MainNav, AccountView, ProgressView, RewardsView, SettingsView, type MainSection } from './ProgressScreens'
 import { EvolutionRank } from '../components/avatars/AvatarEvolution'
 import { EvolutionUnlockOverlay } from '../components/avatars/EvolutionUnlockOverlay'
@@ -56,7 +54,7 @@ const moduleIconAssets: Record<ModuleId, string> = {
 
 export function App() {
   const [game, setGame] = useState<SavedGame | null>(() => localProgressRepository.load() ?? (demoMode ? createDemoGame() : null))
-  const [studentAccessReady, setStudentAccessReady] = useState(() => import.meta.env.VITE_REQUIRE_LOGIN !== 'true' || Boolean(getCloudSession('student')))
+  const [storageWarning, setStorageWarning] = useState<string | null>(null)
   const [screen, setScreen] = useState<Screen>({ name: 'world' })
   const [completionFlowUnitId, setCompletionFlowUnitId] = useState<string | null>(null)
   const [revealingUnitId, setRevealingUnitId] = useState<string | null>(null)
@@ -68,12 +66,6 @@ export function App() {
     root.dataset.music = game?.settings.musicEnabled === false ? 'off' : 'on'
   }, [game?.settings])
 
-  useEffect(() => installCloudSync(), [])
-
-  useEffect(() => {
-    if (game && studentAccessReady && getCloudSession('student')) void queueGameSnapshot(game)
-  }, [game?.profile.playerId, studentAccessReady])
-
   useEffect(() => {
     if (!revealingUnitId) return
     const visibleOnWorld = screen.name === 'world'
@@ -83,16 +75,21 @@ export function App() {
     return () => window.clearTimeout(timer)
   }, [completionFlowUnitId, revealingUnitId, screen])
 
-  const enterAdventure = (nextGame: SavedGame) => {
+  const persist = (nextGame: SavedGame): boolean => {
+    const saved = localProgressRepository.save(nextGame)
+    queueMicrotask(() => setStorageWarning(saved ? null : 'Progress could not be saved on this device. Check browser storage before continuing.'))
+    return saved
+  }
+
+  const enterAdventure = (nextGame: SavedGame): boolean => {
     const migrated = migrateSavedGame(nextGame)
-    localProgressRepository.save(migrated)
+    if (!persist(migrated)) return false
     setGame(migrated)
-    setStudentAccessReady(true)
     setScreen({ name: 'world' })
+    return true
   }
 
   const saveModuleAttempt = (attempt: ModuleAttempt) => {
-    void queueAttempt(attempt)
     setGame((current) => {
       if (!current) return current
       const wasCompleted = isUnitComplete(current.progress, attempt.unitId)
@@ -101,7 +98,7 @@ export function App() {
       if (isModuleComplete(progress, attempt.unitId, attempt.moduleId) && !moduleWasCompleted) setRevealingUnitId(attempt.unitId)
       if (!wasCompleted && isUnitComplete(progress, attempt.unitId)) setCompletionFlowUnitId(attempt.unitId)
       const nextGame = { ...current, profile: { ...current.profile, avatarEvolutionStage: progress.avatarEvolutionStage }, progress }
-      localProgressRepository.save(nextGame)
+      persist(nextGame)
       return nextGame
     })
   }
@@ -110,7 +107,7 @@ export function App() {
     setGame((current) => {
       if (!current || current.progress.wordStrikeTutorialSeen) return current
       const nextGame = { ...current, progress: { ...current.progress, wordStrikeTutorialSeen: true } }
-      localProgressRepository.save(nextGame)
+      persist(nextGame)
       return nextGame
     })
   }
@@ -120,7 +117,7 @@ export function App() {
       if (!current) return current
       const progress = claimUnitReward(current.progress, unitId)
       const nextGame = { ...current, progress }
-      localProgressRepository.save(nextGame)
+      persist(nextGame)
       return nextGame
     })
   }
@@ -131,7 +128,7 @@ export function App() {
     setGame((current) => {
       if (!current) return current
       const next = { ...current, settings }
-      localProgressRepository.save(next)
+      persist(next)
       return next
     })
   }
@@ -141,7 +138,7 @@ export function App() {
       if (!current) return current
       const progress = createProgress(current.profile.avatarId)
       const next = { ...current, profile: { ...current.profile, avatarEvolutionStage: 1 as const }, progress }
-      localProgressRepository.save(next)
+      persist(next)
       return next
     })
     setCompletionFlowUnitId(null)
@@ -150,19 +147,12 @@ export function App() {
   }
 
   const resetProfile = () => {
-    clearCloudSession()
-    localProgressRepository.clear()
+    if (!localProgressRepository.clear()) {
+      setStorageWarning('This device could not erase the local profile. Check browser storage and try again.')
+      return
+    }
     setGame(null)
-    setStudentAccessReady(import.meta.env.VITE_REQUIRE_LOGIN !== 'true')
-    setCompletionFlowUnitId(null)
-    setRevealingUnitId(null)
-    setScreen({ name: 'world' })
-  }
-
-  const signOut = () => {
-    void flushCloudSync()
-    clearCloudSession()
-    setStudentAccessReady(false)
+    setStorageWarning(null)
     setCompletionFlowUnitId(null)
     setRevealingUnitId(null)
     setScreen({ name: 'world' })
@@ -172,7 +162,7 @@ export function App() {
     setGame((current) => {
       if (!current || current.progress.worldCompletionCelebrated) return current
       const next = { ...current, progress: { ...current.progress, worldCompletionCelebrated: true } }
-      localProgressRepository.save(next)
+      persist(next)
       return next
     })
   }
@@ -183,12 +173,12 @@ export function App() {
       const pending = pendingEvolutionUnlock(current.progress)
       if (!pending) return current
       const next = { ...current, progress: acknowledgeEvolutionUnlock(current.progress, pending.nextStage) }
-      localProgressRepository.save(next)
+      persist(next)
       return next
     })
   }
 
-  if (!game || !studentAccessReady) return <StudentAccess onReady={enterAdventure} />
+  if (!game) return <StudentAccess onReady={enterAdventure} />
 
   const pendingEvolution = pendingEvolutionUnlock(game.progress)
   const evolutionOverlay = pendingEvolution && <EvolutionUnlockOverlay
@@ -198,7 +188,7 @@ export function App() {
     reducedMotion={game.settings.reducedMotion}
     onContinue={acknowledgePendingEvolution}
   />
-  const present = (content: ReactNode) => <>{content}{evolutionOverlay}</>
+  const present = (content: ReactNode) => <>{content}{evolutionOverlay}{storageWarning && <p className="local-storage-warning" role="alert">{storageWarning}</p>}</>
   const vocabularyContext = (unit: UnitData) => {
     const words = wordsForUnit(unit)
     const selectedParts = normalizeVocabularyPartSelection(words, game.progress.vocabularyPartSelections?.[unit.id])
@@ -209,7 +199,7 @@ export function App() {
       if (!current) return current
       const progress = withVocabularyPartSelection(current.progress, unit.id, wordsForUnit(unit), selectedParts)
       const nextGame = { ...current, progress }
-      localProgressRepository.save(nextGame)
+      persist(nextGame)
       return nextGame
     })
   }
@@ -220,7 +210,7 @@ export function App() {
     if (!milestoneUnit || (!demoMode && (!isFightingMilestoneUnlocked(game.progress, config) || !fightingMilestoneDataStatus(units, milestoneId).productionReady))) return
     const prepared = prepareFightingLevelProgress(game.progress.fightingLevels[milestoneId], units, milestoneId, fightingSeed(`${game.profile.playerId}:${milestoneId}`))
     const nextGame = { ...game, progress: { ...game.progress, fightingLevels: { ...game.progress.fightingLevels, [milestoneId]: prepared } } }
-    localProgressRepository.save(nextGame)
+    persist(nextGame)
     setGame(nextGame)
     setScreen({ name: 'fighting-level', milestoneId })
   }
@@ -229,7 +219,7 @@ export function App() {
     setGame((current) => {
       if (!current) return current
       const next = { ...current, progress: { ...current.progress, fightingLevels: { ...current.progress.fightingLevels, [milestoneProgress.milestoneId]: milestoneProgress } } }
-      localProgressRepository.save(next)
+      persist(next)
       return next
     })
   }
@@ -239,14 +229,14 @@ export function App() {
       if (!current) return current
       const weakWords = recordSpellingMistake(current.progress.weakWords, unitId, wordId, current.progress.reviewClock)
       const next = { ...current, progress: { ...current.progress, weakWords, reviewClock: current.progress.reviewClock + 1 } }
-      localProgressRepository.save(next)
+      persist(next)
       return next
     })
   }
 
   if (screen.name === 'progress') return present(<ProgressView profile={game.profile} progress={game.progress} onNavigate={navigate} />)
   if (screen.name === 'rewards') return present(<RewardsView progress={game.progress} onNavigate={navigate} />)
-  if (screen.name === 'account') return present(<AccountView profile={game.profile} progress={game.progress} onSignOut={signOut} onNavigate={navigate} />)
+  if (screen.name === 'account') return present(<AccountView profile={game.profile} progress={game.progress} onNavigate={navigate} />)
   if (screen.name === 'settings') return present(<SettingsView settings={game.settings} onChange={changeSettings} onResetProgress={resetProgress} onResetProfile={resetProfile} onNavigate={navigate} />)
 
   if (screen.name === 'unit') {

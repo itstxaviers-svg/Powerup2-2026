@@ -18,7 +18,7 @@ const units: UnitData[] = [
 ]
 
 type Profile = { name: string; group: string; localId: string }
-type Screen = 'home' | 'battle' | 'report'
+type Screen = 'home' | 'battle' | 'report' | 'settings'
 
 function stored<T>(key: string): T | null {
   try {
@@ -51,6 +51,7 @@ export function CheckpointApp() {
     return validCheckpointDraft(stored<CheckpointDraft>(DRAFT_KEY), prepared)
   })
   const [screen, setScreen] = useState<Screen>('home')
+  const [resetStep, setResetStep] = useState<0 | 1 | 2>(0)
   const [notice, setNotice] = useState('')
   const report = profile ? checkpointReport(profile.name, profile.group, progress, units) : ''
 
@@ -94,6 +95,25 @@ export function CheckpointApp() {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
+  const resetCheckpoint = () => {
+    try {
+      window.localStorage.removeItem(DRAFT_KEY)
+      window.localStorage.removeItem(PROGRESS_KEY)
+      window.localStorage.removeItem(PROFILE_KEY)
+    } catch {
+      setNotice('Не удалось удалить данные из браузера. Попробуйте ещё раз.')
+      return
+    }
+    setProfile(null)
+    setName('')
+    setGroup('')
+    setProgress(prepareFullCheckpointProgress(null, units, 'checkpoint-one'))
+    setDraft(null)
+    setResetStep(0)
+    setNotice('Локальные данные Checkpoint удалены.')
+    setScreen('home')
+  }
+
   if (screen === 'battle' && profile) return <>
     <FightingLevel milestoneId={MILESTONE} allUnits={units} progress={progress} initialDraft={draft} onDraftChange={updateDraft} onProgressChange={updateProgress} onBack={() => setScreen('report')} onReport={() => setScreen('report')} />
     {notice && <p className="checkpoint-save-warning" role="alert">{notice}</p>}
@@ -101,8 +121,13 @@ export function CheckpointApp() {
 
   return <main className="checkpoint-shell">
     <div className="checkpoint-wrap">
-      <header className="checkpoint-header"><p className="eyebrow">POWER UP 2 · UNITS 1–3</p><h1>Checkpoint 1</h1><p>Самостоятельная проверка без облака и аккаунта.</p></header>
-      {screen === 'report' && profile ? <section className="checkpoint-panel" aria-labelledby="checkpoint-report-heading">
+      <header className="checkpoint-header"><p className="eyebrow">POWER UP 2 · UNITS 1–3</p><h1>Checkpoint 1</h1><p>Самостоятельная проверка без облака и аккаунта.</p><button className="checkpoint-settings-link" type="button" onClick={() => { setResetStep(0); setNotice(''); setScreen(screen === 'settings' ? 'home' : 'settings') }}>{screen === 'settings' ? '← Назад' : '⚙ Настройки'}</button></header>
+      {screen === 'settings' ? <section className="checkpoint-panel" aria-labelledby="checkpoint-settings-heading">
+        <p className="eyebrow">Локальные данные</p><h2 id="checkpoint-settings-heading">Настройки Checkpoint</h2>
+        <p>Имя, ход проверки и результаты хранятся только в этом браузере. Удаление ниже требует двух подтверждений и не может быть отменено.</p>
+        {resetStep === 0 ? <button className="checkpoint-danger" type="button" onClick={() => setResetStep(1)}>Удалить профиль и прогресс Checkpoint</button> : <div className="checkpoint-reset-confirm" role="alert"><strong>{resetStep === 1 ? 'Первое подтверждение: удалить все результаты и текущий ход?' : 'Последнее подтверждение: вернуть удалённые данные будет невозможно.'}</strong><div><button className="checkpoint-secondary" type="button" onClick={() => setResetStep(0)}>Отмена</button><button className="checkpoint-danger" type="button" onClick={() => resetStep === 1 ? setResetStep(2) : resetCheckpoint()}>{resetStep === 1 ? 'Да, продолжить' : 'Удалить данные сейчас'}</button></div></div>}
+        {notice && <p className="checkpoint-notice" role="status">{notice}</p>}
+      </section> : screen === 'report' && profile ? <section className="checkpoint-panel" aria-labelledby="checkpoint-report-heading">
         <p className="eyebrow">Отчёт для учителя</p>
         <h2 id="checkpoint-report-heading">{progress.completed ? 'Checkpoint пройден!' : 'Пока не пройден'}</h2>
         <p>{profile.name}{profile.group ? ` · ${profile.group}` : ''} · {progress.attemptHistory.length} {progress.attemptHistory.length === 1 ? 'попытка' : 'попыток'}</p>

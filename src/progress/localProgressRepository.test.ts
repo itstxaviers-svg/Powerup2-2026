@@ -18,6 +18,19 @@ beforeEach(() => {
 })
 
 describe('versioned local progress', () => {
+  it('saves and erases only the local game record without a cloud session', () => {
+    const game = {
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      profile: { playerId: 'local', name: 'Learner', group: '5A', avatarId: 1, avatarEvolutionStage: 1 as const, createdAt: 1 },
+      progress: createProgress(1),
+      settings: { musicEnabled: true, sfxEnabled: true, reducedMotion: false },
+    }
+    expect(localProgressRepository.save(game)).toBe(true)
+    expect(localProgressRepository.load()?.profile.name).toBe('Learner')
+    expect(localProgressRepository.clear()).toBe(true)
+    expect(localProgressRepository.load()).toBeNull()
+  })
+
   it('preserves legacy statistics and review history without trusting old completion flags', () => {
     memory.set('power-up-2-progress-v1', JSON.stringify({
       profile: { playerId: 'one', name: 'Learner', group: '2B', avatarId: 3, avatarEvolutionStage: 1, createdAt: 1 },

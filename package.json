@@ -10,7 +10,7 @@
     "assets:web": "node scripts/build-web-assets.mjs",
     "audio:vocabulary": "node scripts/build-vocabulary-audio.mjs",
     "build": "tsc -b && vite build",
-    "build:student": "tsc -b && VITE_APP_ROLE=student VITE_REQUIRE_LOGIN=true vite build",
+    "build:student": "tsc -b && VITE_APP_ROLE=student vite build",
     "build:teacher": "tsc -b && VITE_REQUIRE_LOGIN=true vite build --config vite.teacher.config.ts",
     "build:checkpoint": "tsc -b && vite build --config vite.checkpoint.config.ts",
     "test": "vitest run",

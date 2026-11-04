@@ -3,7 +3,8 @@
 .checkpoint-header { color: #fff9e9; margin: 0 0 1.5rem; }
 .checkpoint-header .eyebrow { color: #6ce1ef; }
 .checkpoint-header h1 { margin-bottom: .5rem; }
-.checkpoint-header p:last-child { color: #d2e7ed; }
+.checkpoint-header p:not(.eyebrow) { color: #d2e7ed; }
+.checkpoint-settings-link { padding: .45rem .7rem; color: #f6f6e9; font-weight: 700; border: 1px solid #83cbd6; border-radius: 10px; background: #0a5770; }
 .checkpoint-panel { padding: clamp(1.2rem, 4vw, 2.5rem); border: 1px solid #e5bd57; border-radius: 25px; background: #fffdf3; box-shadow: 0 22px 60px rgba(0, 14, 32, .3); }
 .checkpoint-panel h2 { font-size: clamp(1.35rem, 3vw, 2rem); }
 .checkpoint-panel > p { line-height: 1.55; }
@@ -11,6 +12,10 @@
 .checkpoint-form label { display: block; }
 .checkpoint-form .primary-button { margin-top: .4rem; }
 .checkpoint-secondary { display: inline-block; width: 100%; margin-top: .8rem; padding: .85rem 1rem; color: #07526d; font-weight: 700; border: 1px solid #9bcbd3; border-radius: 13px; background: #eaf9fb; }
+.checkpoint-danger { min-height: 44px; padding: .8rem 1rem; color: #fff; font-weight: 700; border: 1px solid #8c4a61; border-radius: 12px; background: #8d4d63; }
+.checkpoint-reset-confirm { display: grid; gap: .9rem; padding: 1rem; border: 1px solid #d7a9b7; border-radius: 12px; background: #fff0f3; }
+.checkpoint-reset-confirm > div { display: flex; flex-wrap: wrap; gap: .7rem; }
+.checkpoint-reset-confirm .checkpoint-secondary { width: auto; margin: 0; }
 .checkpoint-privacy { margin: 1.5rem 0 0; color: #5a7180; font-size: .9rem; }
 .checkpoint-report-text { max-height: 45vh; margin: 1rem 0; padding: 1rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; color: #173f53; border: 1px solid #bfd9da; border-radius: 12px; background: #f4fbfa; }
 .checkpoint-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .7rem; }
