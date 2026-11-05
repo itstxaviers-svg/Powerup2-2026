@@ -10,6 +10,9 @@ import { blankFightingLevelProgress, normalizeFightingLevelProgress } from '../g
 import { fightingMilestoneIds } from '../games/fighting-level/fightingLevelConfig'
 
 const STORAGE_KEY = 'power-up-2-progress-v1'
+const PROFILE_INDEX_KEY = 'power-up-2-profile-index-v1'
+const ACTIVE_PROFILE_KEY = 'power-up-2-active-profile-v1'
+const profileKey = (id: string) => `power-up-2-profile-v1:${id}`
 export const CURRENT_SCHEMA_VERSION = 12
 export const defaultSettings: GameSettings = { musicEnabled: true, sfxEnabled: true, reducedMotion: false }
 
@@ -46,7 +49,7 @@ export const createProfile = (name: string, group: string, avatarId: number): Pl
   createdAt: Date.now(),
 })
 
-const isSavedGame = (value: unknown): value is SavedGame => {
+export const isSavedGame = (value: unknown): value is SavedGame => {
   if (!value || typeof value !== 'object') return false
   const game = value as Partial<SavedGame>
   return Boolean(
@@ -60,6 +63,40 @@ const isSavedGame = (value: unknown): value is SavedGame => {
       && game.progress.units
       && typeof game.progress.units === 'object',
   )
+}
+
+function profileIds(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(PROFILE_INDEX_KEY) ?? '[]')
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string' && id.length > 0) : []
+  } catch { return [] }
+}
+
+function readGame(key: string): SavedGame | null {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const parsed: unknown = JSON.parse(raw)
+    return isSavedGame(parsed) ? migrateSavedGame(parsed) : null
+  } catch { return null }
+}
+
+export function savedProfiles(): PlayerProfile[] {
+  const profiles = profileIds().map((id) => readGame(profileKey(id))?.profile).filter((profile): profile is PlayerProfile => Boolean(profile))
+  const legacy = readGame(STORAGE_KEY)?.profile
+  if (legacy && !profiles.some((profile) => profile.playerId === legacy.playerId)) profiles.push(legacy)
+  return profiles.sort((a, b) => b.createdAt - a.createdAt)
+}
+
+export function activateSavedProfile(id: string): SavedGame | null {
+  const game = readGame(profileKey(id)) ?? (readGame(STORAGE_KEY)?.profile.playerId === id ? readGame(STORAGE_KEY) : null)
+  if (!game || !localProgressRepository.save(game)) return null
+  return game
+}
+
+export function signOutSavedProfile(): boolean {
+  try { localStorage.setItem(ACTIVE_PROFILE_KEY, ''); return true }
+  catch { return false }
 }
 
 export function migrateSavedGame(parsed: SavedGame): SavedGame {
@@ -126,18 +163,30 @@ export function migrateSavedGame(parsed: SavedGame): SavedGame {
 export const localProgressRepository: ProgressRepository = {
   load() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return null
-      const parsed: unknown = JSON.parse(raw)
-      if (!isSavedGame(parsed)) return null
-      return migrateSavedGame(parsed)
+      const activeId = localStorage.getItem(ACTIVE_PROFILE_KEY)
+      if (activeId === '') return null
+      if (activeId) {
+        const active = readGame(profileKey(activeId))
+        if (active) return active
+        const legacy = readGame(STORAGE_KEY)
+        return legacy?.profile.playerId === activeId ? legacy : null
+      }
+      const legacy = readGame(STORAGE_KEY)
+      if (legacy) localProgressRepository.save(legacy)
+      return legacy
     } catch {
       return null
     }
   },
   save(game) {
     try {
+      const id = game.profile.playerId
+      if (!id) return false
+      localStorage.setItem(profileKey(id), JSON.stringify(game))
+      const ids = profileIds()
+      if (!ids.includes(id)) localStorage.setItem(PROFILE_INDEX_KEY, JSON.stringify([...ids, id]))
       localStorage.setItem(STORAGE_KEY, JSON.stringify(game))
+      localStorage.setItem(ACTIVE_PROFILE_KEY, id)
       return true
     } catch {
       return false
@@ -145,7 +194,13 @@ export const localProgressRepository: ProgressRepository = {
   },
   clear() {
     try {
+      const activeId = localStorage.getItem(ACTIVE_PROFILE_KEY) || readGame(STORAGE_KEY)?.profile.playerId
+      if (activeId) {
+        localStorage.removeItem(profileKey(activeId))
+        localStorage.setItem(PROFILE_INDEX_KEY, JSON.stringify(profileIds().filter((id) => id !== activeId)))
+      }
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.setItem(ACTIVE_PROFILE_KEY, '')
       return true
     } catch {
       return false

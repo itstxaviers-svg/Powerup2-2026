@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { pendingEvolutionUnlock } from './evolutionUnlock'
 import { moduleMedals } from '../data/rewards'
 import { unit1Vocabulary } from '../data/unit1Vocabulary'
-import { CURRENT_SCHEMA_VERSION, createProgress, localProgressRepository } from './localProgressRepository'
+import { activateSavedProfile, CURRENT_SCHEMA_VERSION, createProgress, localProgressRepository, savedProfiles, signOutSavedProfile } from './localProgressRepository'
 import { claimUnitReward, completedModuleCount, isUnitComplete, isUnitUnlocked } from './progressionEngine'
 import { moduleIds } from '../types/game'
 
@@ -18,6 +18,27 @@ beforeEach(() => {
 })
 
 describe('versioned local progress', () => {
+  it('signs out without deleting local profiles and switches between independent learners', () => {
+    const makeGame = (id: string, name: string) => ({
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      profile: { playerId: id, name, group: '5A', avatarId: 1, avatarEvolutionStage: 1 as const, createdAt: 1 },
+      progress: createProgress(1),
+      settings: { musicEnabled: true, sfxEnabled: true, reducedMotion: false },
+    })
+    const first = makeGame('first', 'First')
+    first.progress.units['unit-01'].modules.repair.attempts = 3
+    expect(localProgressRepository.save(first)).toBe(true)
+    expect(signOutSavedProfile()).toBe(true)
+    expect(localProgressRepository.load()).toBeNull()
+    expect(savedProfiles().map((profile) => profile.name)).toEqual(['First'])
+    expect(localProgressRepository.save(makeGame('second', 'Second'))).toBe(true)
+    expect(savedProfiles()).toHaveLength(2)
+    expect(activateSavedProfile('first')?.progress.units['unit-01'].modules.repair.attempts).toBe(3)
+    expect(localProgressRepository.clear()).toBe(true)
+    expect(savedProfiles().map((profile) => profile.name)).toEqual(['Second'])
+    expect(localProgressRepository.load()).toBeNull()
+  })
+
   it('saves and erases only the local game record without a cloud session', () => {
     const game = {
       schemaVersion: CURRENT_SCHEMA_VERSION,

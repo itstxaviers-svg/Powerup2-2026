@@ -17,7 +17,8 @@ import { CodeFighter } from '../games/code-fighter/CodeFighter'
 import { FightingLevel, FightingMilestoneCard } from '../games/fighting-level/FightingLevel'
 import { fightingMilestoneForUnit, fightingMilestones } from '../games/fighting-level/fightingLevelConfig'
 import { fightingMilestoneDataStatus, fightingSeed, prepareFightingLevelProgress } from '../games/fighting-level/fightingLevelEngine'
-import { CURRENT_SCHEMA_VERSION, createProfile, createProgress, defaultSettings, localProgressRepository, migrateSavedGame } from '../progress/localProgressRepository'
+import { CURRENT_SCHEMA_VERSION, createProfile, createProgress, defaultSettings, localProgressRepository, migrateSavedGame, signOutSavedProfile } from '../progress/localProgressRepository'
+import { downloadBackup, explorerBackup } from '../progress/profileTransfer'
 import { acknowledgeEvolutionUnlock, pendingEvolutionUnlock } from '../progress/evolutionUnlock'
 import { applyModuleAttempt, chestTierForUnit, claimUnitReward, completedModuleCount, completedUnitCount, isFightingMilestoneUnlocked, isModuleComplete, isUnitComplete, isUnitLearningGateComplete, isUnitUnlocked } from '../progress/progressionEngine'
 import { filterVocabularyByParts, normalizeVocabularyPartSelection, vocabularyScopeLabel, withVocabularyPartSelection } from '../learning/vocabularyParts'
@@ -158,6 +159,24 @@ export function App() {
     setScreen({ name: 'world' })
   }
 
+  const signOut = () => {
+    if (!game || !persist(game) || !signOutSavedProfile()) {
+      setStorageWarning('Could not save and sign out. Check browser storage and try again.')
+      return
+    }
+    setGame(null)
+    setScreen({ name: 'world' })
+    setCompletionFlowUnitId(null)
+    setRevealingUnitId(null)
+    setStorageWarning(null)
+  }
+
+  const exportProfile = () => {
+    if (!game) return
+    try { downloadBackup(explorerBackup(game), `power-up-2-${game.profile.name.trim().replace(/[^a-zA-Z0-9\p{L}\p{N}-]+/gu, '-').slice(0, 40) || 'explorer'}.json`) }
+    catch { setStorageWarning('Could not download the backup. Try again in another browser.') }
+  }
+
   const celebrateWorld = () => {
     setGame((current) => {
       if (!current || current.progress.worldCompletionCelebrated) return current
@@ -236,8 +255,8 @@ export function App() {
 
   if (screen.name === 'progress') return present(<ProgressView profile={game.profile} progress={game.progress} onNavigate={navigate} />)
   if (screen.name === 'rewards') return present(<RewardsView progress={game.progress} onNavigate={navigate} />)
-  if (screen.name === 'account') return present(<AccountView profile={game.profile} progress={game.progress} onNavigate={navigate} />)
-  if (screen.name === 'settings') return present(<SettingsView settings={game.settings} onChange={changeSettings} onResetProgress={resetProgress} onResetProfile={resetProfile} onNavigate={navigate} />)
+  if (screen.name === 'account') return present(<AccountView profile={game.profile} progress={game.progress} onNavigate={navigate} onSignOut={signOut} onExport={exportProfile} />)
+  if (screen.name === 'settings') return present(<SettingsView settings={game.settings} onChange={changeSettings} onResetProgress={resetProgress} onResetProfile={resetProfile} onSignOut={signOut} onExport={exportProfile} onNavigate={navigate} />)
 
   if (screen.name === 'unit') {
     const unit = units.find((candidate) => candidate.id === screen.unitId)
